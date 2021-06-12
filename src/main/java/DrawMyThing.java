@@ -51,14 +51,28 @@ public class DrawMyThing extends JPanel {
 	}
 
 	public static BufferedImage createImage(int[][] rgbArray) {
-		int width = rgbArray.length;
-		int height = rgbArray[0].length;
+		int height = rgbArray.length;
+		int width = rgbArray[0].length;
 
 		BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
 		for (int yIndex = 0; yIndex < height; yIndex++) {
 			for (int xIndex = 0; xIndex < width; xIndex++) {
-				bufferedImage.setRGB(xIndex, yIndex, rgbArray[xIndex][yIndex]);
+				bufferedImage.setRGB(xIndex, yIndex, rgbArray[yIndex][xIndex]);
+			}
+		}
+		return bufferedImage;
+	}
+	
+	public static BufferedImage createGrayscaleImage(int[][] rgbArray) {
+		int width = rgbArray.length;
+		int height = rgbArray[0].length;
+
+		BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
+
+		for (int yIndex = 0; yIndex < height; yIndex++) {
+			for (int xIndex = 0; xIndex < width; xIndex++) {
+				bufferedImage.setRGB(xIndex, yIndex, rgbArray[yIndex][xIndex]);
 			}
 		}
 		return bufferedImage;
