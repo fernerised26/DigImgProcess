@@ -1,0 +1,28 @@
+fn fill(x, y):
+  if not Inside(x, y) then return //exit early if starting point is not considered "inside"
+  let s = new empty queue or stack //init data structure
+  
+  //init data points
+  Add (x, x, y, 1) to s //seed (0,0)
+  Add (x, x, y - 1, -1) to s //seed (0,-1)
+  
+  while s is not empty:
+    Remove an (x1, x2, y, dy) from s
+	
+    let x = x1
+    if Inside(x, y): //Checks if created seeds are still inside, (0,-1) has a chance to not be inside
+      while Inside(x - 1, y): //check if point to the left of the starting seed is considered inside
+        Set(x - 1, y) //perform desired action on "inside" cohort
+        x = x - 1 //continue looping further left until a boundary is encountered
+    if x < x1: //if the while loop above executed at least once (there was at least one pixel to the left of the seed that was inside)
+      Add (x, x1-1, y-dy, -dy) to s //add a new seed where (x=leftmost-inside, y=one-row-over-in-opposite-direction), also reverse direction of the seed to catch overhangs
+    while x1 < x2: //fails on initial seeds, guaranteed x1 == x2, created seeds from line 18 will be valid
+      while Inside(x1, y): //checks whether the row offset still results in "inside-ness"
+        Set(x1, y) //do the thing
+        x1 = x1 + 1 //iterate to the right, but by modifying the seed's x1 instead of a local var for some reason
+      Add (x, x1 - 1, y+dy, dy) to s //for current row, add (leftmost-inside-x, rightmost-inside-x, row offset+1 in same direction)
+      if x1 - 1 > x2:
+        Add (x2 + 1, x1 - 1, y-dy, -dy) //catch overhangs to the right, complementary purpose to line 18
+      while x1 < x2 and not Inside(x1, y): //After x1 is potentially modified in line 22 looping, check whether it has caught up to the rightmost-inside-x. If not, increment until it is back inside (I believe this shortcuts detecting gaps caused by overhangs)
+        x1 = x1 + 1
+      x = x1 //increments x for the purpose of generating new seeds on line 23
