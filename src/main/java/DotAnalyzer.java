@@ -1,5 +1,6 @@
 package main.java;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -195,7 +196,27 @@ public class DotAnalyzer {
 		}
 	}
 	
-	private static void handleSpot(BufferedImage image, int currX, int currY) {
+	//Iterates through all pixels, classifying each pixel by which color they are most deeply found in
+	private static void identifyZones(BufferedImage image, int startX, int startY) {
+		int startRGB = image.getRGB(startX, startY);
+		
+		boolean[][] tracker = new boolean[image.getHeight()][image.getWidth()];
+		int[][] redColorVals = new int[image.getHeight()][image.getWidth()];
+		int[][] greenColorVals = new int[image.getHeight()][image.getWidth()];
+		int[][] blueColorVals = new int[image.getHeight()][image.getWidth()];
+		
+		Color startColor = new Color(startRGB);
+		int startRed = startColor.getRed();
+		int startBlue = startColor.getBlue();
+		int startGreen = startColor.getGreen();
+		
+		if(startRed == startBlue && startRed == startGreen) {
+			//TODO - started on a boundary
+		} else {
+			//TODO - started on a deadzone
+		}
+		
 		
 	}
+	
 }
