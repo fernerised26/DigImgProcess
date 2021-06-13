@@ -4,9 +4,10 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
 import java.util.Scanner;
 
 import javax.imageio.ImageIO;
@@ -198,25 +199,63 @@ public class DotAnalyzer {
 	
 	//Iterates through all pixels, classifying each pixel by which color they are most deeply found in
 	private static void identifyZones(BufferedImage image, int startX, int startY) {
-		int startRGB = image.getRGB(startX, startY);
-		
 		boolean[][] tracker = new boolean[image.getHeight()][image.getWidth()];
-		int[][] redColorVals = new int[image.getHeight()][image.getWidth()];
-		int[][] greenColorVals = new int[image.getHeight()][image.getWidth()];
-		int[][] blueColorVals = new int[image.getHeight()][image.getWidth()];
+		int[][][] rgbVals = new int[image.getHeight()][image.getWidth()][];
+		Queue<SeedCoord> coordQueue = new LinkedList<SeedCoord>();
+		Integer boundaryColorIndexCounter = 0;
+		Map<Integer, int[]> rgbToIndex = new HashMap<>();
 		
-		Color startColor = new Color(startRGB);
-		int startRed = startColor.getRed();
-		int startBlue = startColor.getBlue();
-		int startGreen = startColor.getGreen();
+		int[] startRgbArr = ColorTrackerHandler.getRGB(image, startX, startY, tracker, rgbVals);
 		
-		if(startRed == startBlue && startRed == startGreen) {
-			//TODO - started on a boundary
+		if(isBoundary(startRgbArr)) {
+			//TODO - started on a boundary 
+			if(!rgbToIndex.containsKey(rgbVals[startY][startX])) {
+				rgbToIndex.put(rgbVals[startY][startX], boundaryColorIndexCounter);
+				boundaryColorIndexCounter += 1;
+			}
+			SeedCoord seed1 = new SeedCoord(startX + 1, startX + 1, startY, 1);
+			SeedCoord seed2 = new SeedCoord(startX + 1, startX + 1, startY - 1, 1);
+			coordQueue.add(seed1);
+			coordQueue.add(seed2);
 		} else {
 			//TODO - started on a deadzone
 		}
 		
+		while(!coordQueue.isEmpty()) {
+			SeedCoord currSeed = coordQueue.poll();
+			int localX = currSeed.x1;
+			int[] currRgbArr = ColorTrackerHandler.getRGB(image, localX, currSeed.y, tracker, rgbVals);
+			if(!isBoundary(currRgbArr)) {
+				
+			} else {
+				//Is no longer inside
+			}
+		}
+	}
+	
+	private static boolean isBoundary(int[] rgbArr) {
+		if(rgbArr[0] == rgbArr[1] && rgbArr[0] == rgbArr[2]) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
+	private void isInside(int x, int y) {
 		
 	}
 	
+	private static class SeedCoord {
+		private int x1;
+		private int x2;
+		private int y;
+		private int dy;
+		SeedCoord(int x1, int x2, int y, int dy) {
+			super();
+			this.x1 = x1;
+			this.x2 = x2;
+			this.y = y;
+			this.dy = dy;
+		}
+	}
 }

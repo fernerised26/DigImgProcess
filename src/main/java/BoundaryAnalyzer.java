@@ -8,7 +8,29 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 public class BoundaryAnalyzer {
+	
+	public static void isPixelInsidePolygon(BufferedImage image, int initX, int initY, int[][][] rgbTracker) {
+		int width = image.getWidth();
+		
+		if(initX >= width/2) {
+			for(int i = initX; i < width; i++) {
+				
+			}
+		} else {
+			for(int i = initX; i >= 0; i--) {
+				
+			}
+		}
+	}
 
+	public static boolean isBoundary(int[] rgbArr) {
+		if(rgbArr[0] == rgbArr[1] && rgbArr[0] == rgbArr[2]) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
 	public static void main(String[] args) throws IOException{
 		BoundaryAnalyzer boundAnly = new BoundaryAnalyzer();
 		File input = new File("E:\\Pictures\\DigImgWork\\NaiveCircle.png");
