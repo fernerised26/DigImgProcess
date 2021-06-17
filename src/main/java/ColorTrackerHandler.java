@@ -6,25 +6,20 @@ import java.util.Arrays;
 
 public class ColorTrackerHandler {
 	
-	public static int[] getRGB(BufferedImage image, int x, int y, boolean[][] tracker, int[][][] rgbTracker) {
-		if(tracker[y][x] != true) {
+	public static Color getRGB(BufferedImage image, int x, int y, Color[][] rgbTracker) {
+		if(rgbTracker[y][x] != null) {
 			return rgbTracker[y][x];
 		} else {
-			return updateTrackers(image, x, y, tracker, rgbTracker);
+			return updateTrackers(image, x, y, rgbTracker);
 		}
 	}
 
-	public static int[] updateTrackers(BufferedImage image, int x, int y, boolean[][] tracker, int[][][] rgbTracker) {
+	public static Color updateTrackers(BufferedImage image, int x, int y, Color[][] rgbTracker) {
 		int rgb = image.getRGB(x, y);
-		tracker[y][x] = true;
 		Color color = new Color(rgb);
-		int[] rgbArr = new int[3];
-		rgbArr[0] = color.getRed();
-		rgbArr[1] = color.getGreen();
-		rgbArr[2] = color.getBlue();
 		
-		rgbTracker[y][x] = rgbArr;
-		return rgbArr;
+		rgbTracker[y][x] = color;
+		return color;
 	}
 	
 	public static void main(String[] args) {

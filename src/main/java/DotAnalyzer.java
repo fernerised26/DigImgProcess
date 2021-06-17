@@ -199,20 +199,20 @@ public class DotAnalyzer {
 	
 	//Iterates through all pixels, classifying each pixel by which color they are most deeply found in
 	private static void identifyZones(BufferedImage image, int startX, int startY) {
-		boolean[][] tracker = new boolean[image.getHeight()][image.getWidth()];
-		int[][][] rgbVals = new int[image.getHeight()][image.getWidth()][];
+//		boolean[][] tracker = new boolean[image.getHeight()][image.getWidth()];
+		Color[][] rgbVals = new Color[image.getHeight()][image.getWidth()];
 		Queue<SeedCoord> coordQueue = new LinkedList<SeedCoord>();
-		Integer boundaryColorIndexCounter = 0;
-		Map<Integer, int[]> rgbToIndex = new HashMap<>();
+//		Integer boundaryColorIndexCounter = 0;
+//		Map<Integer, int[]> rgbToIndex = new HashMap<>();
 		
-		int[] startRgbArr = ColorTrackerHandler.getRGB(image, startX, startY, tracker, rgbVals);
+		Color startRgbArr = ColorTrackerHandler.getRGB(image, startX, startY, rgbVals);
 		
 		if(isBoundary(startRgbArr)) {
 			//TODO - started on a boundary 
-			if(!rgbToIndex.containsKey(rgbVals[startY][startX])) {
-				rgbToIndex.put(rgbVals[startY][startX], boundaryColorIndexCounter);
-				boundaryColorIndexCounter += 1;
-			}
+//			if(!rgbToIndex.containsKey(rgbVals[startY][startX])) {
+//				rgbToIndex.put(rgbVals[startY][startX], boundaryColorIndexCounter);
+//				boundaryColorIndexCounter += 1;
+//			}
 			SeedCoord seed1 = new SeedCoord(startX + 1, startX + 1, startY, 1);
 			SeedCoord seed2 = new SeedCoord(startX + 1, startX + 1, startY - 1, 1);
 			coordQueue.add(seed1);
@@ -224,17 +224,17 @@ public class DotAnalyzer {
 		while(!coordQueue.isEmpty()) {
 			SeedCoord currSeed = coordQueue.poll();
 			int localX = currSeed.x1;
-			int[] currRgbArr = ColorTrackerHandler.getRGB(image, localX, currSeed.y, tracker, rgbVals);
+			Color currRgbArr = ColorTrackerHandler.getRGB(image, localX, currSeed.y, rgbVals);
 			if(!isBoundary(currRgbArr)) {
 				
 			} else {
-				//Is no longer inside
+				//Seed is no longer inside
 			}
 		}
 	}
 	
-	private static boolean isBoundary(int[] rgbArr) {
-		if(rgbArr[0] == rgbArr[1] && rgbArr[0] == rgbArr[2]) {
+	public static boolean isBoundary(Color rgb) {
+		if(rgb.getRed() == rgb.getBlue() && rgb.getRed() == rgb.getGreen()) {
 			return false;
 		} else {
 			return true;

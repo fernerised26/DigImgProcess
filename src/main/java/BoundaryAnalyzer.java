@@ -1,30 +1,70 @@
 package main.java;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.imageio.ImageIO;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class BoundaryAnalyzer {
 	
-	public static void isPixelInsidePolygon(BufferedImage image, int initX, int initY, int[][][] rgbTracker) {
+	public static Color isPixelInsidePolygon(BufferedImage image, int initX, int initY, Color[][] rgbTracker) {
 		int width = image.getWidth();
 		
-		if(initX >= width/2) {
-			for(int i = initX; i < width; i++) {
-				
-			}
-		} else {
-			for(int i = initX; i >= 0; i--) {
-				
+		if(isBoundary(ColorTrackerHandler.getRGB(image, initX, initY, rgbTracker))) {
+			return null;
+		}
+		
+		Map<Color, Integer> boundingColorsToCrossings = new LinkedHashMap<>();
+		boolean insideBoundary = false;
+		Color lastBoundaryColor = null; 
+		
+		//Check to the right
+		for(int i = initX; i < width; i++) {
+			Color currRgb = ColorTrackerHandler.getRGB(image, i, initY, rgbTracker);
+			if(isBoundary(currRgb) && !insideBoundary) {
+				Integer crossings = boundingColorsToCrossings.get(currRgb);
+				if(crossings == null) {
+					boundingColorsToCrossings.put(currRgb, Integer.valueOf(1));
+				} else {
+					boundingColorsToCrossings.put(currRgb, Integer.valueOf(crossings.intValue()+1));
+				}
+				insideBoundary = true;
+				lastBoundaryColor = currRgb;
+			} else if(isBoundary(currRgb) && insideBoundary) {
+				if(!currRgb.equals(lastBoundaryColor)) {
+					Integer crossings = boundingColorsToCrossings.get(currRgb);
+					if(crossings == null) {
+						boundingColorsToCrossings.put(currRgb, Integer.valueOf(1));
+					} else {
+						boundingColorsToCrossings.put(currRgb, Integer.valueOf(crossings.intValue()+1));
+					}
+					lastBoundaryColor = currRgb;
+				}
+			} else {
+				insideBoundary = false;
+				lastBoundaryColor = null; 
 			}
 		}
+		
+		/*TODO - Current strategy is defeated by edge cases of tangential intersections. 
+		Raster format restriction prevents reliable vector data of the polygons from being known
+		despite originating from vector data. Can leverage original svg file
+		and process both .png and .svg simultaneously. However, SVG parsing will need significant work.
+		*/  
+		
+		for(Entry<Color, Integer> crossCount : boundingColorsToCrossings.entrySet()) {
+			if(crossCount.getValue().intValue() % 2 == 1) {
+				//deepest boundary found, leveraging insertion order of the LinkedHashMap
+				return crossCount.getKey();
+			}
+		}
+		return null;
 	}
 
-	public static boolean isBoundary(int[] rgbArr) {
-		if(rgbArr[0] == rgbArr[1] && rgbArr[0] == rgbArr[2]) {
+	public static boolean isBoundary(Color rgb) {
+		if(rgb.getRed() == rgb.getBlue() && rgb.getRed() == rgb.getGreen()) {
 			return false;
 		} else {
 			return true;
@@ -32,26 +72,16 @@ public class BoundaryAnalyzer {
 	}
 	
 	public static void main(String[] args) throws IOException{
-		BoundaryAnalyzer boundAnly = new BoundaryAnalyzer();
-		File input = new File("E:\\Pictures\\DigImgWork\\NaiveCircle.png");
-		BufferedImage image = ImageIO.read(input);
-		int width = image.getWidth();
-		int height = image.getHeight(); //yIndex is bounded on width, assumes that the microscope outputs square images
-		System.out.println("Width: " + width);
-		System.out.println("Height: " + height);
+//		int[] testa = new int[] {0, 1, 2};
+//		int[] testb = new int[] {0, 1, 2};
+//		
+//		System.out.println(testa.equals(testb));
+//		System.out.println(Arrays.equals(testa, testb));
 		
-		List<List<Integer>> twoDList = new ArrayList<List<Integer>>();
-
-		for (int yIndex = 0; yIndex < height; yIndex++) {
-			twoDList.add(createEmptyList(width));
-		}
+//		Color color1 = new Color(255);
+//		Color color2 = new Color(255);
+//		
+//		System.out.println(color1.equals(color2));
 	}
 	
-	private static List<Integer> createEmptyList(int length) {
-		List<Integer> newList = new ArrayList<Integer>(length);
-		for (int i = 0; i < length; i++) {
-			newList.add(0);
-		}
-		return newList;
-	}
 }
