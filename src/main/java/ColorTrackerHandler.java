@@ -6,20 +6,37 @@ import java.util.Arrays;
 
 public class ColorTrackerHandler {
 	
-	public static Color getRGB(BufferedImage image, int x, int y, Color[][] rgbTracker) {
-		if(rgbTracker[y][x] != null) {
-			return rgbTracker[y][x];
+//	public static Color getRGB(BufferedImage image, int x, int y, Color[][] rgbTracker) {
+//		if(rgbTracker[y][x] != null) {
+//			return rgbTracker[y][x];
+//		} else {
+//			return updateTrackers(image, x, y, rgbTracker);
+//		}
+//	}
+//
+//	public static Color updateTrackers(BufferedImage image, int x, int y, Color[][] rgbTracker) {
+//		int rgb = image.getRGB(x, y);
+//		Color color = new Color(rgb);
+//		
+//		rgbTracker[y][x] = color;
+//		return color;
+//	}
+	
+	public static PixelMeta getPixel(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
+		if(pxlTracker[y][x] != null) {
+			return pxlTracker[y][x];
 		} else {
-			return updateTrackers(image, x, y, rgbTracker);
+			return updateTrackers(image, x, y, pxlTracker);
 		}
 	}
 
-	public static Color updateTrackers(BufferedImage image, int x, int y, Color[][] rgbTracker) {
+	public static PixelMeta updateTrackers(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
 		int rgb = image.getRGB(x, y);
 		Color color = new Color(rgb);
+		PixelMeta pixel = new PixelMeta(x, y, color);
 		
-		rgbTracker[y][x] = color;
-		return color;
+		pxlTracker[y][x] = pixel;
+		return pixel;
 	}
 	
 	public static void main(String[] args) {

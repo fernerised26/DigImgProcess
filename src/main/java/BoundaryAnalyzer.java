@@ -5,14 +5,13 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 public class BoundaryAnalyzer {
 	
-	public static Color isPixelInsidePolygon(BufferedImage image, int initX, int initY, Color[][] rgbTracker) {
+	public static Color isPixelInsidePolygon(BufferedImage image, int initX, int initY, PixelMeta[][] pxlTracker) {
 		int width = image.getWidth();
-		
-		if(isBoundary(ColorTrackerHandler.getRGB(image, initX, initY, rgbTracker))) {
+		int height = image.getHeight();
+		if(isBoundary(ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker).getColor())) {
 			return null;
 		}
 		
@@ -20,9 +19,51 @@ public class BoundaryAnalyzer {
 		boolean insideBoundary = false;
 		Color lastBoundaryColor = null; 
 		
-		//Check to the right
-		for(int i = initX; i < width; i++) {
-			Color currRgb = ColorTrackerHandler.getRGB(image, i, initY, rgbTracker);
+		//check pixel left (clockwise)
+		if(initX - 1 >= 0) {
+			PixelMeta leftPixel = pxlTracker[initY][initX - 1];
+			Color currWrapGonColor = leftPixel.getWrapGonColor();
+			if(leftPixel != null && currWrapGonColor != null) {
+				PixelMeta currPixel = ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker);
+				currPixel.setWrapGonColor(currWrapGonColor);
+				return currWrapGonColor;
+			}
+		}
+		//check pixel above
+		if(initY - 1 >= 0) {
+			PixelMeta abovePixel = pxlTracker[initY - 1][initX];
+			Color currWrapGonColor = abovePixel.getWrapGonColor();
+			if(abovePixel != null && currWrapGonColor != null) {
+				PixelMeta currPixel = ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker);
+				currPixel.setWrapGonColor(currWrapGonColor);
+				return currWrapGonColor;
+			}
+		}
+		//check pixel right
+		if(initX + 1 >= 0) {
+			PixelMeta rightPixel = pxlTracker[initY][initX + 1];
+			Color currWrapGonColor = rightPixel.getWrapGonColor();
+			if(rightPixel != null && currWrapGonColor != null) {
+				PixelMeta currPixel = ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker);
+				currPixel.setWrapGonColor(currWrapGonColor);
+				return currWrapGonColor;
+			}
+		}
+		//check pixel below
+		if(initX + 1 >= 0) {
+			PixelMeta belowPixel = pxlTracker[initY + 1][initX];
+			if(belowPixel != null && belowPixel.getWrapGonColor() != null) {
+				Color currWrapGonColor = belowPixel.getWrapGonColor();
+				PixelMeta currPixel = ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker);
+				currPixel.setWrapGonColor(currWrapGonColor);
+				return currWrapGonColor;
+			}
+		}
+		
+		//Cast ray to the left
+		for(int i = initX; i > 0; i--) {
+			PixelMeta currPixel = ColorTrackerHandler.getPixel(image, i, initY, pxlTracker);
+			Color currRgb = currPixel.getColor();
 			if(isBoundary(currRgb) && !insideBoundary) {
 				Integer crossings = boundingColorsToCrossings.get(currRgb);
 				if(crossings == null) {

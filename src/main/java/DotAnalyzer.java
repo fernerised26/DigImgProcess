@@ -34,12 +34,12 @@ public class DotAnalyzer {
 //		String imageFileLoc = scanner.nextLine().trim();
 //		scanner.close();
 		
-		System.out.println("Enter directory to start in: ");
-		Scanner scanner = new Scanner(System.in);
-		String startDir = scanner.nextLine().trim();
-		scanner.close();
+//		System.out.println("Enter directory to start in: ");
+//		Scanner scanner = new Scanner(System.in);
+//		String startDir = scanner.nextLine().trim();
+//		scanner.close();
 		
-		digThroughImages(startDir);
+//		digThroughImages(startDir);
 		
 //		File scaleBarFile = new File(scaleBarFileLoc);
 //		File imageFile = new File(imageFileLoc);
@@ -58,6 +58,25 @@ public class DotAnalyzer {
 		//500nm bar length = 76 pixels
 		//1 pixel represents ~6.5789nm, 1.778 quantum dots
 		//threshold rgbValue for a hit estimated at -8600000 
+		
+		for(int i = 0; i < 10; i++) {
+			long start = System.currentTimeMillis();
+			File imageFile = new File("InkscapeTest2.png");
+			BufferedImage image = ImageIO.read(imageFile);
+			int height = image.getHeight();
+			int width = image.getWidth();
+			
+			PixelMeta[][] arr = new PixelMeta[height][width];
+			for(int y = 0; y < height; y++) {
+				for(int x = 0; x < width; x++) {
+					Color color = new Color(image.getRGB(x, y));
+					PixelMeta qp = new PixelMeta(x, y, color);
+					arr[y][x] = qp;
+				}
+			}
+			long end = System.currentTimeMillis();
+			System.out.println(end - start);
+		}
 	}
 	
 //	System.out.println(Arrays.toString(startDir.list()));
