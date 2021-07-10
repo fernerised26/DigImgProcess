@@ -19,6 +19,8 @@ public class BoundaryAnalyzer {
 		boolean insideBoundary = false;
 		Color lastBoundaryColor = null; 
 		
+		//TODO revise logic, when are wrapping gons first determined? 
+		
 		//check pixel left (clockwise)
 		if(initX - 1 >= 0) {
 			PixelMeta leftPixel = pxlTracker[initY][initX - 1];

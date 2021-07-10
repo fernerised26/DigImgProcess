@@ -22,18 +22,18 @@ public class ColorTrackerHandler {
 //		return color;
 //	}
 	
-	public static PixelMeta getPixel(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
-		if(pxlTracker[y][x] != null) {
-			return pxlTracker[y][x];
-		} else {
-			return updateTrackers(image, x, y, pxlTracker);
-		}
-	}
+//	public static PixelMeta getPixel(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
+//		if(pxlTracker[y][x] != null) {
+//			return pxlTracker[y][x];
+//		} else {
+//			return updateTracker(image, x, y, pxlTracker);
+//		}
+//	}
 
-	public static PixelMeta updateTrackers(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
+	public static PixelMeta updateTracker(BufferedImage image, int x, int y, Coordinate coord, PixelMeta[][] pxlTracker) {
 		int rgb = image.getRGB(x, y);
 		Color color = new Color(rgb);
-		PixelMeta pixel = new PixelMeta(x, y, color);
+		PixelMeta pixel = new PixelMeta(x, y, color, coord);
 		
 		pxlTracker[y][x] = pixel;
 		return pixel;

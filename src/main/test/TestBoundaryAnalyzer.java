@@ -4,11 +4,11 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 
 import main.java.BoundaryAnalyzer;
+import main.java.PixelMeta;
 
 public class TestBoundaryAnalyzer {
 
@@ -17,7 +17,7 @@ public class TestBoundaryAnalyzer {
 		BufferedImage image = ImageIO.read(input);
 		int width = image.getWidth();
 		int height = image.getHeight();
-		Color[][] rgbTracker = new Color[height][width];
+		PixelMeta[][] rgbTracker = new PixelMeta[height][width];
 		
 		Color result1 = BoundaryAnalyzer.isPixelInsidePolygon(image, 189, 68, rgbTracker);
 		System.out.println("Result 1 isNull: " + (result1 == null) + " [Expected: true]");
@@ -33,7 +33,7 @@ public class TestBoundaryAnalyzer {
 		BufferedImage image2 = ImageIO.read(input2);
 		int width2 = image2.getWidth();
 		int height2 = image2.getHeight();
-		Color[][] rgbTracker2 = new Color[height2][width2];
+		PixelMeta[][] rgbTracker2 = new PixelMeta[height2][width2];
 		
 		Color result4 = BoundaryAnalyzer.isPixelInsidePolygon(image2, 297, 110, rgbTracker2);
 		System.out.println("Result 4: " + (result4 == null) + " [Expected: true]");
@@ -46,7 +46,7 @@ public class TestBoundaryAnalyzer {
 		BufferedImage image3 = ImageIO.read(input3);
 		int width3 = image3.getWidth();
 		int height3 = image3.getHeight();
-		Color[][] rgbTracker3 = new Color[height3][width3];
+		PixelMeta[][] rgbTracker3 = new PixelMeta[height3][width3];
 		
 		Color result6 = BoundaryAnalyzer.isPixelInsidePolygon(image3, 541, 131, rgbTracker3);
 		System.out.println("Result 6: " + (result6 == null) + " [Expected: true]");

@@ -216,17 +216,26 @@ public class DotAnalyzer {
 		}
 	}
 	
+	//TODO Determine wrapping-polygon of a pixel, floodfill to apply the same wrapper gon to all contiguous pixels, repeat until all pixels are consumed
+	
 	//Iterates through all pixels, classifying each pixel by which color they are most deeply found in
 	private static void identifyZones(BufferedImage image, int startX, int startY) {
-//		boolean[][] tracker = new boolean[image.getHeight()][image.getWidth()];
-		Color[][] rgbVals = new Color[image.getHeight()][image.getWidth()];
+		PixelMeta[][] pxlTracker = new PixelMeta[image.getHeight()][image.getWidth()];
+		Queue<Coordinate> untouchedPixels = new LinkedList<Coordinate>();
+		
+		for(int yIndex = 0; yIndex < image.getHeight(); yIndex++) {
+			for(int xIndex = 0; xIndex < image.getWidth(); xIndex++) {
+				Coordinate coord = new Coordinate(xIndex, yIndex);
+				untouchedPixels.add(coord);
+				ColorTrackerHandler.updateTracker(image, xIndex, yIndex, coord, pxlTracker);
+			}
+		}
+		
 		Queue<SeedCoord> coordQueue = new LinkedList<SeedCoord>();
-//		Integer boundaryColorIndexCounter = 0;
-//		Map<Integer, int[]> rgbToIndex = new HashMap<>();
 		
-		Color startRgbArr = ColorTrackerHandler.getRGB(image, startX, startY, rgbVals);
+		PixelMeta startPixel = pxlTracker[startY][startX];
 		
-		if(isBoundary(startRgbArr)) {
+		if(startPixel.isBoundary()) {
 			//TODO - started on a boundary 
 //			if(!rgbToIndex.containsKey(rgbVals[startY][startX])) {
 //				rgbToIndex.put(rgbVals[startY][startX], boundaryColorIndexCounter);
@@ -249,14 +258,6 @@ public class DotAnalyzer {
 			} else {
 				//Seed is no longer inside
 			}
-		}
-	}
-	
-	public static boolean isBoundary(Color rgb) {
-		if(rgb.getRed() == rgb.getBlue() && rgb.getRed() == rgb.getGreen()) {
-			return false;
-		} else {
-			return true;
 		}
 	}
 	
