@@ -35,6 +35,7 @@ public class TestBoundaryAnalyzer {
 		BufferedImage image2 = ImageIO.read(input2);
 		int width2 = image2.getWidth();
 		int height2 = image2.getHeight();
+
 		PixelMeta[][] pxlTracker2 = new PixelMeta[height2][width2];
 		initPxlTracker(image2, pxlTracker2);
 		
@@ -49,6 +50,7 @@ public class TestBoundaryAnalyzer {
 		BufferedImage image3 = ImageIO.read(input3);
 		int width3 = image3.getWidth();
 		int height3 = image3.getHeight();
+		
 		PixelMeta[][] pxlTracker3 = new PixelMeta[height3][width3];
 		initPxlTracker(image3, pxlTracker3);
 		
@@ -67,7 +69,7 @@ public class TestBoundaryAnalyzer {
 	private static void initPxlTracker(BufferedImage image, PixelMeta[][] pxlTracker) {
 		for(int y = 0; y < image.getHeight(); y++) {
 			for(int x = 0; x < image.getWidth(); x++) {
-				ColorTrackerHandler.updateTrackers(image, x, y, pxlTracker);
+				ColorTrackerHandler.updateTracker(image, x, y, pxlTracker);
 			}
 		}
 	}

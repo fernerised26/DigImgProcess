@@ -215,10 +215,10 @@ public class DotAnalyzer {
 		}
 	}
 	
+	//TODO Determine wrapping-polygon of a pixel, floodfill to apply the same wrapper gon to all contiguous pixels, repeat until all pixels are consumed
+	
 	//Iterates through all pixels, classifying each pixel by which color they are most deeply found in
 	private static void identifyZones(BufferedImage image, int startX, int startY) {
-//		boolean[][] tracker = new boolean[image.getHeight()][image.getWidth()];
-//		Color[][] rgbVals = new Color[image.getHeight()][image.getWidth()];
 		PixelMeta[][] pxlTracker = new PixelMeta[image.getHeight()][image.getWidth()];
 		Queue<SeedCoord> coordQueue = new LinkedList<SeedCoord>();
 		int imgWidth = image.getWidth();
@@ -234,13 +234,9 @@ public class DotAnalyzer {
 			}
 		}
 		
-//		Integer boundaryColorIndexCounter = 0;
-//		Map<Integer, int[]> rgbToIndex = new HashMap<>();
-		
-//		Color startRgbArr = ColorTrackerHandler.getRGB(image, startX, startY, rgbVals);
 		PixelMeta startPixel = ColorTrackerHandler.getPixel(image, startX, startY, pxlTracker);
 		
-		if(isBoundary(startPixel)) {
+		if(startPixel.isBoundary()) {
 			//TODO - started on a boundary 
 //			if(!rgbToIndex.containsKey(rgbVals[startY][startX])) {
 //				rgbToIndex.put(rgbVals[startY][startX], boundaryColorIndexCounter);
@@ -259,7 +255,7 @@ public class DotAnalyzer {
 			int localX = currSeed.x1;
 //			Color currRgbArr = ColorTrackerHandler.getRGB(image, localX, currSeed.y, rgbVals);
 			PixelMeta currPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
-			if(!isBoundary(currPixel)) {
+			if(!currPixel.isBoundary()) {
 				Color currWrapGonColor = currPixel.getWrapGonColor();
 				if(currWrapGonColor == null) {
 					BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
@@ -275,15 +271,6 @@ public class DotAnalyzer {
 				coordQueue.add(seed1);
 				coordQueue.add(seed2);
 			}
-		}
-	}
-	
-	public static boolean isBoundary(PixelMeta pixel) {
-		Color rgb = pixel.getColor();
-		if(rgb.getRed() == rgb.getBlue() && rgb.getRed() == rgb.getGreen()) {
-			return false;
-		} else {
-			return true;
 		}
 	}
 	

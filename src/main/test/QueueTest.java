@@ -16,14 +16,18 @@ public class QueueTest {
 		
 		System.out.println(queue);
 		
-		System.out.println(queue.poll());
-		System.out.println(queue.poll());
+//		System.out.println(queue.poll());
+//		System.out.println(queue.poll());
+//		
+//		System.out.println(queue);
+//		
+//		System.out.println(queue.poll());
+//		System.out.println(queue.poll());
+//		
+//		System.out.println(queue);
 		
-		System.out.println(queue);
-		
-		System.out.println(queue.poll());
-		System.out.println(queue.poll());
-		
+		System.out.println(queue.remove("Derp"));
+		System.out.println(queue.remove("First"));
 		System.out.println(queue);
 	}
 }

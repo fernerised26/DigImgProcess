@@ -26,11 +26,11 @@ public class ColorTrackerHandler {
 		if(pxlTracker[y][x] != null) {
 			return pxlTracker[y][x];
 		} else {
-			return updateTrackers(image, x, y, pxlTracker);
+			return updateTracker(image, x, y, pxlTracker);
 		}
 	}
 
-	public static PixelMeta updateTrackers(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
+	public static PixelMeta updateTracker(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
 		int rgb = image.getRGB(x, y);
 		Color color = new Color(rgb);
 		PixelMeta pixel = new PixelMeta(x, y, color);

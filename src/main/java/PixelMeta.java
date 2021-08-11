@@ -8,6 +8,7 @@ public class PixelMeta {
 	private int y;
 	private Color color;
 	private Color wrapGonColor;
+	private Boolean isBoundary = null; 
 	
 	public PixelMeta(int x, int y, Color color) {
 		super();
@@ -34,5 +35,19 @@ public class PixelMeta {
 
 	public Color getColor() {
 		return color;
+	}
+	
+	public boolean isBoundary() {
+		if(isBoundary == null) {
+			if(color.getRed() == color.getBlue() && color.getRed() == color.getGreen()) {
+				isBoundary = Boolean.FALSE;
+				return false;
+			} else {
+				isBoundary = Boolean.TRUE;
+				return true;
+			}	
+		} else {
+			return isBoundary.booleanValue();
+		}
 	}
 }

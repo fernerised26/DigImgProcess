@@ -11,13 +11,15 @@ public class BoundaryAnalyzer {
 	public static Color isPixelInsidePolygon(BufferedImage image, int initX, int initY, PixelMeta[][] pxlTracker) {
 		int width = image.getWidth();
 		int height = image.getHeight();
-		if(isBoundary(ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker).getColor())) {
+		if(ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker).isBoundary()) {
 			return null;
 		}
 		
 		Map<Color, Integer> boundingColorsToCrossings = new LinkedHashMap<>();
 		boolean insideBoundary = false;
 		Color lastBoundaryColor = null; 
+		
+		//TODO revise logic, when are wrapping gons first determined? 
 		
 		//check pixel left (clockwise)
 		if(initX - 1 >= 0) {
@@ -64,7 +66,7 @@ public class BoundaryAnalyzer {
 		for(int i = initX; i > 0; i--) {
 			PixelMeta currPixel = ColorTrackerHandler.getPixel(image, i, initY, pxlTracker);
 			Color currRgb = currPixel.getColor();
-			if(isBoundary(currRgb) && !insideBoundary) {
+			if(currPixel.isBoundary() && !insideBoundary) { //account for boundaries that are multiple pixels thick
 				Integer crossings = boundingColorsToCrossings.get(currRgb);
 				if(crossings == null) {
 					boundingColorsToCrossings.put(currRgb, Integer.valueOf(1));
@@ -73,7 +75,7 @@ public class BoundaryAnalyzer {
 				}
 				insideBoundary = true;
 				lastBoundaryColor = currRgb;
-			} else if(isBoundary(currRgb) && insideBoundary) {
+			} else if(currPixel.isBoundary() && insideBoundary) {
 				if(!currRgb.equals(lastBoundaryColor)) {
 					Integer crossings = boundingColorsToCrossings.get(currRgb);
 					if(crossings == null) {
@@ -104,13 +106,13 @@ public class BoundaryAnalyzer {
 		return null;
 	}
 
-	public static boolean isBoundary(Color rgb) {
-		if(rgb.getRed() == rgb.getBlue() && rgb.getRed() == rgb.getGreen()) {
-			return false;
-		} else {
-			return true;
-		}
-	}
+//	public static boolean isBoundary(Color rgb) {
+//		if(rgb.getRed() == rgb.getBlue() && rgb.getRed() == rgb.getGreen()) {
+//			return false;
+//		} else {
+//			return true;
+//		}
+//	}
 	
 	public static void main(String[] args) throws IOException{
 //		int[] testa = new int[] {0, 1, 2};
