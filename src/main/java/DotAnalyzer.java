@@ -4,11 +4,10 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Queue;
-import java.util.Scanner;
+import java.util.Set;
 
 import javax.imageio.ImageIO;
 
@@ -219,21 +218,36 @@ public class DotAnalyzer {
 	//Iterates through all pixels, classifying each pixel by which color they are most deeply found in
 	private static void identifyZones(BufferedImage image, int startX, int startY) {
 //		boolean[][] tracker = new boolean[image.getHeight()][image.getWidth()];
-		Color[][] rgbVals = new Color[image.getHeight()][image.getWidth()];
+//		Color[][] rgbVals = new Color[image.getHeight()][image.getWidth()];
+		PixelMeta[][] pxlTracker = new PixelMeta[image.getHeight()][image.getWidth()];
 		Queue<SeedCoord> coordQueue = new LinkedList<SeedCoord>();
+		int imgWidth = image.getWidth();
+		int pxlCount = imgWidth*imgWidth;
+		Set<PixelMeta> pxlsToAnalyze = new HashSet<PixelMeta>(pxlCount);
+		
+		for(int y = 0; y < imgWidth; y++) {
+			for(int x = 0; x < imgWidth; x++) {
+				Color color = new Color(image.getRGB(x, y));
+				PixelMeta pixel = new PixelMeta(x, y, color);
+				pxlTracker[y][x] = pixel;
+				pxlsToAnalyze.add(pixel);
+			}
+		}
+		
 //		Integer boundaryColorIndexCounter = 0;
 //		Map<Integer, int[]> rgbToIndex = new HashMap<>();
 		
-		Color startRgbArr = ColorTrackerHandler.getRGB(image, startX, startY, rgbVals);
+//		Color startRgbArr = ColorTrackerHandler.getRGB(image, startX, startY, rgbVals);
+		PixelMeta startPixel = ColorTrackerHandler.getPixel(image, startX, startY, pxlTracker);
 		
-		if(isBoundary(startRgbArr)) {
+		if(isBoundary(startPixel)) {
 			//TODO - started on a boundary 
 //			if(!rgbToIndex.containsKey(rgbVals[startY][startX])) {
 //				rgbToIndex.put(rgbVals[startY][startX], boundaryColorIndexCounter);
 //				boundaryColorIndexCounter += 1;
 //			}
-			SeedCoord seed1 = new SeedCoord(startX + 1, startX + 1, startY, 1);
-			SeedCoord seed2 = new SeedCoord(startX + 1, startX + 1, startY - 1, 1);
+			SeedCoord seed1 = new SeedCoord(startX, startX, startY, 1);
+			SeedCoord seed2 = new SeedCoord(startX, startX, startY - 1, 1);
 			coordQueue.add(seed1);
 			coordQueue.add(seed2);
 		} else {
@@ -243,16 +257,29 @@ public class DotAnalyzer {
 		while(!coordQueue.isEmpty()) {
 			SeedCoord currSeed = coordQueue.poll();
 			int localX = currSeed.x1;
-			Color currRgbArr = ColorTrackerHandler.getRGB(image, localX, currSeed.y, rgbVals);
-			if(!isBoundary(currRgbArr)) {
-				
+//			Color currRgbArr = ColorTrackerHandler.getRGB(image, localX, currSeed.y, rgbVals);
+			PixelMeta currPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
+			if(!isBoundary(currPixel)) {
+				Color currWrapGonColor = currPixel.getWrapGonColor();
+				if(currWrapGonColor == null) {
+					BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
+				}
 			} else {
 				//Seed is no longer inside
+			}
+			
+			if(coordQueue.isEmpty() && !pxlsToAnalyze.isEmpty()) {
+				PixelMeta nextSeedPixel = pxlsToAnalyze.iterator().next();
+				SeedCoord seed1 = new SeedCoord(nextSeedPixel.getX(), nextSeedPixel.getX(), nextSeedPixel.getY(), 1);
+				SeedCoord seed2 = new SeedCoord(nextSeedPixel.getX(), nextSeedPixel.getX(), nextSeedPixel.getY() - 1, 1);
+				coordQueue.add(seed1);
+				coordQueue.add(seed2);
 			}
 		}
 	}
 	
-	public static boolean isBoundary(Color rgb) {
+	public static boolean isBoundary(PixelMeta pixel) {
+		Color rgb = pixel.getColor();
 		if(rgb.getRed() == rgb.getBlue() && rgb.getRed() == rgb.getGreen()) {
 			return false;
 		} else {

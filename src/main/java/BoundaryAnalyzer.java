@@ -50,7 +50,7 @@ public class BoundaryAnalyzer {
 			}
 		}
 		//check pixel below
-		if(initX + 1 >= 0) {
+		if(initY + 1 >= 0) {
 			PixelMeta belowPixel = pxlTracker[initY + 1][initX];
 			if(belowPixel != null && belowPixel.getWrapGonColor() != null) {
 				Color currWrapGonColor = belowPixel.getWrapGonColor();
