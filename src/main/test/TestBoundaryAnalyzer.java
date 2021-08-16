@@ -9,11 +9,12 @@ import javax.imageio.ImageIO;
 
 import main.java.BoundaryAnalyzer;
 import main.java.ColorTrackerHandler;
+import main.java.LogicException;
 import main.java.PixelMeta;
 
 public class TestBoundaryAnalyzer {
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, LogicException {
 		File input = new File("PolygonTest.png");	
 		BufferedImage image = ImageIO.read(input);
 		int width = image.getWidth();
