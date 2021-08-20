@@ -117,7 +117,7 @@ public class DotAnalyzer {
 								if(imgFile.isFile()) {
 									BufferedImage fileAsImg = ImageIO.read(imgFile);
 									System.out.println("Processing file: "+imgFileName);
-									PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 0, 0);
+									PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 39, 42);
 									visualizeZones(pixelsWithZones);
 								} else {
 									System.err.println(imgFile.getAbsolutePath() + " is not a file. Please check the contents of the target directory.");
@@ -269,78 +269,97 @@ public class DotAnalyzer {
 //		}
 			
 		SeedCoord seed1 = new SeedCoord(startX, startX, startY, 1);
-//		SeedCoord seed2 = new SeedCoord(startX, startX, startY - 1, 1);
+		SeedCoord seed2 = new SeedCoord(startX, startX, startY - 1, -1);
 		coordQueue.add(seed1);
-//		coordQueue.add(seed2);
+		coordQueue.add(seed2);
 		
 		int refillCounter = 0;
 		
 		while(!coordQueue.isEmpty()) {
 			SeedCoord currSeed = coordQueue.poll();
+			System.out.println("CurrSeed: " + currSeed.toString());
 			PixelMeta seedPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
 			pxlsToAnalyze.remove(seedPixel);
 			
+			int localX = currSeed.x1;
+			Color currWrapGonColor = seedPixel.getWrapGonColor();
+			
 			if(!seedPixel.isBoundary()) {
-				Color currWrapGonColor = seedPixel.getWrapGonColor();
 				if(currWrapGonColor == null) {
 					currWrapGonColor = BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
 					if(currWrapGonColor == null) { 
-						System.out.println("X: "+currSeed.x1 + " Y: "+currSeed.y);
-						throw new LogicException("ERR-1 Non-boundary pixel should be inside at least 1 polygon.");
+						throw new LogicException("ERR-1 Non-boundary pixel should be inside at least 1 polygon | " + 
+								"X: "+currSeed.x1 + " Y: "+currSeed.y);
 					}
 					seedPixel.setWrapGonColor(currWrapGonColor);
 				}
 				
-				int localX = currSeed.x1;
 				while(localX > 0) {
 					PixelMeta branchPixel = ColorTrackerHandler.getPixel(image, localX - 1, currSeed.y, pxlTracker);
+					pxlsToAnalyze.remove(branchPixel);
 					if(!branchPixel.isBoundary()) {
 						branchPixel.setWrapGonColor(currWrapGonColor);
-						pxlsToAnalyze.remove(branchPixel);
 						localX -= 1;
 					} else {
 						break;
 					}
 				}
+			}
+			
+			if(localX < currSeed.x1) {
+				SeedCoord backtrackHorizontalSeed = new SeedCoord(localX, currSeed.x1 - 1, (currSeed.y - currSeed.dy), (-1 * currSeed.dy));
+				coordQueue.add(backtrackHorizontalSeed);
+				System.out.println("Adding seed 1: "+backtrackHorizontalSeed.toString());
+			}
+			
+			while(currSeed.x1 < currSeed.x2) {
+				PixelMeta branchPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
+				pxlsToAnalyze.remove(branchPixel);
+				while(currSeed.x1 < imgWidth && !branchPixel.isBoundary()) {
+					branchPixel.setWrapGonColor(currWrapGonColor);
+					currSeed.x1 += 1;
+					branchPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
+					pxlsToAnalyze.remove(branchPixel);
+				} 
 				
-				if(localX < currSeed.x1) {
-					SeedCoord backtrackHorizontalSeed = new SeedCoord(localX, currSeed.x1, (currSeed.y - currSeed.dy), (-1 * currSeed.dy));
+				if(currSeed.y + currSeed.dy < imgWidth) {
+					SeedCoord exploreVerticalSeed = new SeedCoord(localX, currSeed.x1 - 1, (currSeed.y + currSeed.dy), currSeed.dy);
+					coordQueue.add(exploreVerticalSeed);
+					System.out.println("Adding seed 2: "+exploreVerticalSeed.toString());
+				}
+//					if(exploreVerticalSeed.y == 43) {
+//						System.out.println("43 -- 2: "+exploreVerticalSeed.toString());
+//					}
+				
+				if(currSeed.x1 - 1 > currSeed.x2) {
+					SeedCoord backtrackHorizontalSeed = new SeedCoord(currSeed.x2 + 1, currSeed.x1 - 1, (currSeed.y - currSeed.dy), (-1 * currSeed.dy));
 					coordQueue.add(backtrackHorizontalSeed);
+//						if(backtrackHorizontalSeed.y == 43) {
+//							System.out.println("43 -- 3 "+backtrackHorizontalSeed.toString());
+//						}
+					System.out.println("Adding seed 3: "+backtrackHorizontalSeed.toString());
 				}
 				
 				while(currSeed.x1 < currSeed.x2) {
-					PixelMeta branchPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
-					while(currSeed.x1 < imgWidth && !branchPixel.isBoundary()) {
-						branchPixel.setWrapGonColor(currWrapGonColor);
-						pxlsToAnalyze.remove(branchPixel);
-						currSeed.x1 += 1;
-						branchPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
-					} 
-					
-					SeedCoord exploreVerticalSeed = new SeedCoord(localX, currSeed.x1 - 1, (currSeed.y + currSeed.dy), currSeed.dy);
-					coordQueue.add(exploreVerticalSeed);
-					
-					if(currSeed.x1 - 1 > currSeed.x2) {
-						SeedCoord backtrackHorizontalSeed = new SeedCoord(currSeed.x2 + 1, currSeed.x1 - 1, (currSeed.y - currSeed.dy), (-1 * currSeed.dy));
-						coordQueue.add(backtrackHorizontalSeed);
-					}
-					
-					while(currSeed.x1 < currSeed.x2) {
-						PixelMeta bridgePixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
-						if(!bridgePixel.isBoundary()) {
-							Color tempColor = BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
-							if(tempColor.equals(currWrapGonColor)) {
-								break;
-							}
+					PixelMeta bridgePixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
+					if(!bridgePixel.isBoundary()) {
+						Color tempColor = BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
+						if(tempColor.equals(currWrapGonColor)) {
+							break;
 						}
-						currSeed.x1 += 1;
 					}
-					localX = currSeed.x1;
+					currSeed.x1 += 1;
 				}
-
-			} 
+				localX = currSeed.x1;
+			}
+			
+			System.out.println("Pixels to analyze: " + pxlsToAnalyze.size());
+			if(pxlsToAnalyze.size() == 0) { 
+				break;
+			}
+			
 //			 && refillCounter < 10
-			if(coordQueue.isEmpty()) {
+			if(coordQueue.isEmpty() && refillCounter < 0) {
 				System.out.println("Refilling coordinate queue | timestamp:"+System.currentTimeMillis());
 				Iterator<PixelMeta> iterator = pxlsToAnalyze.iterator();
 				while(coordQueue.isEmpty() && iterator.hasNext()) {
@@ -354,7 +373,7 @@ public class DotAnalyzer {
 					}
 				}
 				System.out.println("Refill complete | timestamp:"+System.currentTimeMillis());
-//				refillCounter++;
+				refillCounter++;
 			}
 		}
 		
@@ -377,7 +396,7 @@ public class DotAnalyzer {
 			}
 		}
 		BufferedImage imgout = DrawMyThing.createImage(rgbout);
-		File output = new File("testout\\BoundTest3Out.tif");
+		File output = new File("testout\\BoundTest3Out-limited.tif");
 		try {
 			ImageIO.write(imgout, "tif", output);
 		} catch (IOException e) {
@@ -398,5 +417,11 @@ public class DotAnalyzer {
 			this.y = y;
 			this.dy = dy;
 		}
+
+		@Override
+		public String toString() {
+			return "SeedCoord [x1=" + x1 + ", x2=" + x2 + ", y=" + y + ", dy=" + dy + "]";
+		}
+		
 	}
 }

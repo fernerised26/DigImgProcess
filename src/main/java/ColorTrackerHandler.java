@@ -6,6 +6,8 @@ import java.util.Arrays;
 
 public class ColorTrackerHandler {
 	
+	private static int counter = 0;
+	
 //	public static Color getRGB(BufferedImage image, int x, int y, Color[][] rgbTracker) {
 //		if(rgbTracker[y][x] != null) {
 //			return rgbTracker[y][x];
@@ -22,7 +24,12 @@ public class ColorTrackerHandler {
 //		return color;
 //	}
 	
+	public static void report() {
+		System.out.println("GetPixel count: "+counter);
+	}
+	
 	public static PixelMeta getPixel(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
+		counter++;
 		if(pxlTracker[y][x] != null) {
 			return pxlTracker[y][x];
 		} else {
