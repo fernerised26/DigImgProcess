@@ -308,37 +308,36 @@ public class DotAnalyzer {
 					coordQueue.add(backtrackHorizontalSeed);
 				}
 				
-				while(currSeed.x1 < imgWidth && currSeed.x1 < currSeed.x2) {
+				while(currSeed.x1 < currSeed.x2) {
 					PixelMeta branchPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
-					if(!branchPixel.isBoundary()) {
+					while(currSeed.x1 < imgWidth && !branchPixel.isBoundary()) {
 						branchPixel.setWrapGonColor(currWrapGonColor);
 						pxlsToAnalyze.remove(branchPixel);
 						currSeed.x1 += 1;
-					} else {
-						break;
+						branchPixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
+					} 
+					
+					SeedCoord exploreVerticalSeed = new SeedCoord(localX, currSeed.x1 - 1, (currSeed.y + currSeed.dy), currSeed.dy);
+					coordQueue.add(exploreVerticalSeed);
+					
+					if(currSeed.x1 - 1 > currSeed.x2) {
+						SeedCoord backtrackHorizontalSeed = new SeedCoord(currSeed.x2 + 1, currSeed.x1 - 1, (currSeed.y - currSeed.dy), (-1 * currSeed.dy));
+						coordQueue.add(backtrackHorizontalSeed);
 					}
-				}
-				
-				SeedCoord exploreVerticalSeed = new SeedCoord(localX, currSeed.x1 - 1, (currSeed.y + currSeed.dy), currSeed.dy);
-				coordQueue.add(exploreVerticalSeed);
-				
-				if(currSeed.x1 - 1 > currSeed.x2) {
-					SeedCoord backtrackHorizontalSeed = new SeedCoord(currSeed.x2 + 1, currSeed.x1 - 1, (currSeed.y - currSeed.dy), (-1 * currSeed.dy));
-					coordQueue.add(backtrackHorizontalSeed);
-				}
-				
-				//TODO iteratively ray cast here, other sections just check whether the pixel is contiguous
-				while(currSeed.x1 < currSeed.x2) {
-					PixelMeta bridgePixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
-					if(!bridgePixel.isBoundary()) {
-						Color tempColor = BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
-						if(tempColor.equals(currWrapGonColor)) {
-							break;
+					
+					while(currSeed.x1 < currSeed.x2) {
+						PixelMeta bridgePixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
+						if(!bridgePixel.isBoundary()) {
+							Color tempColor = BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
+							if(tempColor.equals(currWrapGonColor)) {
+								break;
+							}
 						}
+						currSeed.x1 += 1;
 					}
-					currSeed.x1 += 1;
+					localX = currSeed.x1;
 				}
-				localX = currSeed.x1;
+
 			} 
 //			 && refillCounter < 10
 			if(coordQueue.isEmpty()) {
@@ -378,7 +377,7 @@ public class DotAnalyzer {
 			}
 		}
 		BufferedImage imgout = DrawMyThing.createImage(rgbout);
-		File output = new File("testout\\BoundTest2Out.tif");
+		File output = new File("testout\\BoundTest3Out.tif");
 		try {
 			ImageIO.write(imgout, "tif", output);
 		} catch (IOException e) {
