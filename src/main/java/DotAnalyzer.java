@@ -286,7 +286,7 @@ public class DotAnalyzer {
 			
 			if(!seedPixel.isBoundary()) {
 				if(currWrapGonColor == null) {
-					currWrapGonColor = BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
+					currWrapGonColor = BoundaryAnalyzer.isPixelInsidePolygon(currSeed.x1, currSeed.y, pxlTracker, imgWidth, imgWidth);
 					if(currWrapGonColor == null) { 
 						throw new LogicException("ERR-1 Non-boundary pixel should be inside at least 1 polygon | " + 
 								"X: "+currSeed.x1 + " Y: "+currSeed.y);
@@ -343,7 +343,7 @@ public class DotAnalyzer {
 				while(currSeed.x1 < currSeed.x2) {
 					PixelMeta bridgePixel = ColorTrackerHandler.getPixel(image, currSeed.x1, currSeed.y, pxlTracker);
 					if(!bridgePixel.isBoundary()) {
-						Color tempColor = BoundaryAnalyzer.isPixelInsidePolygon(image, currSeed.x1, currSeed.y, pxlTracker);
+						Color tempColor = BoundaryAnalyzer.isPixelInsidePolygon(currSeed.x1, currSeed.y, pxlTracker, imgWidth, imgWidth);
 						if(tempColor.equals(currWrapGonColor)) {
 							break;
 						}

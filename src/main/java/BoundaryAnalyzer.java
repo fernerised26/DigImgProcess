@@ -1,17 +1,13 @@
 package main.java;
 import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
 public class BoundaryAnalyzer {
 	
-	public static Color isPixelInsidePolygon(BufferedImage image, int initX, int initY, PixelMeta[][] pxlTracker) throws LogicException {
-		int width = image.getWidth();
-		int height = image.getHeight();
-		if(ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker).isBoundary()) {
+	public static Color isPixelInsidePolygon(int initX, int initY, PixelMeta[][] pxlTracker, int width, int height) throws LogicException {
+		if(pxlTracker[initY][initX].isBoundary()) {
 			System.out.println("Boundary default to null");
 			return null;
 		}
@@ -21,60 +17,15 @@ public class BoundaryAnalyzer {
 		Color lastBoundaryColor = null;
 		PixelMeta lastBoundaryEntryPoint = null;
 		
-		
-		//TODO revise logic, when are wrapping gons first determined? 
-		
-		//check pixel left (clockwise)
-//		if(initX - 1 >= 0) {
-//			PixelMeta leftPixel = pxlTracker[initY][initX - 1];
-//			Color currWrapGonColor = leftPixel.getWrapGonColor();
-//			if(leftPixel != null && currWrapGonColor != null) {
-//				PixelMeta currPixel = ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker);
-//				currPixel.setWrapGonColor(currWrapGonColor);
-//				return currWrapGonColor;
-//			}
-//		}
-		//check pixel above
-//		if(initY - 1 >= 0) {
-//			PixelMeta abovePixel = pxlTracker[initY - 1][initX];
-//			Color currWrapGonColor = abovePixel.getWrapGonColor();
-//			if(abovePixel != null && currWrapGonColor != null) {
-//				PixelMeta currPixel = ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker);
-//				currPixel.setWrapGonColor(currWrapGonColor);
-//				return currWrapGonColor;
-//			}
-//		}
-		//check pixel right
-//		if(initX + 1 >= 0) {
-//			PixelMeta rightPixel = pxlTracker[initY][initX + 1];
-//			Color currWrapGonColor = rightPixel.getWrapGonColor();
-//			if(rightPixel != null && currWrapGonColor != null) {
-//				PixelMeta currPixel = ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker);
-//				currPixel.setWrapGonColor(currWrapGonColor);
-//				return currWrapGonColor;
-//			}
-//		}
-		//check pixel below
-//		if(initY + 1 >= 0) {
-//			PixelMeta belowPixel = pxlTracker[initY + 1][initX];
-//			if(belowPixel != null && belowPixel.getWrapGonColor() != null) {
-//				Color currWrapGonColor = belowPixel.getWrapGonColor();
-//				PixelMeta currPixel = ColorTrackerHandler.getPixel(image, initX, initY, pxlTracker);
-//				currPixel.setWrapGonColor(currWrapGonColor);
-//				return currWrapGonColor;
-//			}
-//		}
-		
 		//Cast ray to the left
 //		System.out.println("Casting ray from (" + initX + ", " + initY + ")");
 		for(int i = initX; i >= 0; i--) {
-			PixelMeta currPixel = ColorTrackerHandler.getPixel(image, i, initY, pxlTracker);
+			PixelMeta currPixel = pxlTracker[initY][i];
 			Color currRgb = currPixel.getColor();
 //			System.out.println("Current XY: (" + i + ", " + initY + ")");
 //			System.out.println("Current Color: (" + currRgb.getRed() + ", " + currRgb.getGreen() + ", " + currRgb.getBlue() + ")");
-			if(currPixel.isBoundary() && !insideBoundary) { //account for boundaries that are multiple pixels thick
-				
-				//TODO Analyze whether enter exit points of boundary have adjacent boundary pixels that are both in the same direction. If yes, is vertex, and must adjust crossing count
+			//account for boundaries that are multiple pixels thick
+			if(currPixel.isBoundary() && !insideBoundary) {
 				Integer crossings = boundingColorsToCrossings.get(currRgb);
 				if(crossings == null) {
 					boundingColorsToCrossings.put(currRgb, Integer.valueOf(1));
@@ -86,7 +37,7 @@ public class BoundaryAnalyzer {
 				lastBoundaryEntryPoint = currPixel;
 			} else if(currPixel.isBoundary() && insideBoundary) {
 				if(!currRgb.equals(lastBoundaryColor)) {
-					handleVertexCrossing(lastBoundaryEntryPoint, image, lastBoundaryColor, pxlTracker, i, initY, boundingColorsToCrossings);
+					handleVertexCrossing(lastBoundaryEntryPoint, lastBoundaryColor, pxlTracker, i, initY, boundingColorsToCrossings, width, height);
 					
 					Integer crossings = boundingColorsToCrossings.get(currRgb);
 					if(crossings == null) {
@@ -98,7 +49,7 @@ public class BoundaryAnalyzer {
 				}
 			} else {
 				if(insideBoundary && lastBoundaryColor != null) {
-					handleVertexCrossing(lastBoundaryEntryPoint, image, lastBoundaryColor, pxlTracker, i, initY, boundingColorsToCrossings);
+					handleVertexCrossing(lastBoundaryEntryPoint, lastBoundaryColor, pxlTracker, i, initY, boundingColorsToCrossings, width, height);
 				}
 				
 				insideBoundary = false;
@@ -106,53 +57,26 @@ public class BoundaryAnalyzer {
 			}
 		}
 		
-		/*TODO - Current strategy is defeated by edge cases of tangential intersections. 
-		Raster format restriction prevents reliable vector data of the polygons from being known
-		despite originating from vector data. Can leverage original svg file
-		and process both .png and .svg simultaneously. However, SVG parsing will need significant work.
-		*/  
-		
 		for(Entry<Color, Integer> crossCount : boundingColorsToCrossings.entrySet()) {
 			if(crossCount.getValue().intValue() % 2 == 1) {
 				//deepest boundary found, leveraging insertion order of the LinkedHashMap
 				return crossCount.getKey();
 			}
 		}
-		System.out.println(boundingColorsToCrossings);
-		System.out.println("Boundary fallthrough to null");
+//		System.out.println(boundingColorsToCrossings);
+//		System.out.println("Boundary fallthrough to null");
 		return null;
 	}
-
-//	public static boolean isBoundary(Color rgb) {
-//		if(rgb.getRed() == rgb.getBlue() && rgb.getRed() == rgb.getGreen()) {
-//			return false;
-//		} else {
-//			return true;
-//		}
-//	}
 	
-	public static void main(String[] args) throws IOException{
-//		int[] testa = new int[] {0, 1, 2};
-//		int[] testb = new int[] {0, 1, 2};
-//		
-//		System.out.println(testa.equals(testb));
-//		System.out.println(Arrays.equals(testa, testb));
-		
-//		Color color1 = new Color(255);
-//		Color color2 = new Color(255);
-//		
-//		System.out.println(color1.equals(color2));
-	}
-	
-	private static Contiguity checkVerticalContiguity(PixelMeta focalPoint, BufferedImage image, Color lastBoundaryColor, PixelMeta[][] pxlTracker) throws LogicException {
+	private static Contiguity checkVerticalContiguity(PixelMeta focalPoint, Color lastBoundaryColor, PixelMeta[][] pxlTracker, int width, int height) throws LogicException {
 		boolean isContiguousBoundaryAbove = false;
 		boolean isContiguousBoundaryBelow = false;
 		
 		if(focalPoint.getY() - 1 >= 0) {
 			for(int j = -1 ; j <= 1; j++) {
 				int columnToScan = focalPoint.getX() + j;
-				if(columnToScan >= 0 && columnToScan < image.getWidth()) {
-					PixelMeta abovePixel = ColorTrackerHandler.getPixel(image, columnToScan, focalPoint.getY() - 1, pxlTracker);
+				if(columnToScan >= 0 && columnToScan < width) {
+					PixelMeta abovePixel = pxlTracker[focalPoint.getY() - 1][columnToScan];
 					if(lastBoundaryColor.equals(abovePixel.getColor())) {
 						isContiguousBoundaryAbove = true;
 						break;
@@ -161,11 +85,11 @@ public class BoundaryAnalyzer {
 			}
 		}
 		
-		if(focalPoint.getY() + 1 < image.getHeight()) {
+		if(focalPoint.getY() + 1 < height) {
 			for(int j = -1 ; j <= 1; j++) {
 				int columnToScan = focalPoint.getX() + j;
-				if(columnToScan >= 0 && columnToScan < image.getWidth()) {
-					PixelMeta belowPixel = ColorTrackerHandler.getPixel(image, columnToScan, focalPoint.getY() + 1, pxlTracker);
+				if(columnToScan >= 0 && columnToScan < width) {
+					PixelMeta belowPixel = pxlTracker[focalPoint.getY() + 1][columnToScan];
 					if(lastBoundaryColor.equals(belowPixel.getColor())) {
 						isContiguousBoundaryBelow = true;
 						break;
@@ -186,12 +110,12 @@ public class BoundaryAnalyzer {
 		}
 	}
 	
-	private static void handleVertexCrossing(PixelMeta lastBoundaryEntryPoint, BufferedImage image, Color lastBoundaryColor, PixelMeta[][] pxlTracker,
-			int loopOffset, int yCoord, Map<Color, Integer> crossingColorMap) throws LogicException {
-		Contiguity entryContiguity = checkVerticalContiguity(lastBoundaryEntryPoint, image, lastBoundaryColor, pxlTracker);
-		PixelMeta exitPixel = ColorTrackerHandler.getPixel(image, loopOffset + 1, yCoord, pxlTracker);
+	private static void handleVertexCrossing(PixelMeta lastBoundaryEntryPoint, Color lastBoundaryColor, PixelMeta[][] pxlTracker,
+			int loopOffset, int yCoord, Map<Color, Integer> crossingColorMap, int width, int height) throws LogicException {
+		Contiguity entryContiguity = checkVerticalContiguity(lastBoundaryEntryPoint, lastBoundaryColor, pxlTracker, width, height);
+		PixelMeta exitPixel = pxlTracker[yCoord][loopOffset + 1]; 
 		if(!exitPixel.equals(lastBoundaryEntryPoint)) {
-			Contiguity exitContiguity = checkVerticalContiguity(exitPixel, image, lastBoundaryColor, pxlTracker);
+			Contiguity exitContiguity = checkVerticalContiguity(exitPixel, lastBoundaryColor, pxlTracker, width, height);
 			if((entryContiguity == Contiguity.ABOVE && exitContiguity == Contiguity.ABOVE) ||
 					(entryContiguity == Contiguity.BELOW && exitContiguity == Contiguity.BELOW)) {
 				Integer crossings = crossingColorMap.get(lastBoundaryColor);
