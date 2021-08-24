@@ -8,13 +8,15 @@ public class PixelMeta {
 	private int y;
 	private Color color;
 	private Color wrapGonColor;
-	private Boolean isBoundary = null; 
-	
-	public PixelMeta(int x, int y, Color color) {
+	private boolean isBoundary = false; 
+	private boolean isFlooded = false;
+
+	public PixelMeta(int x, int y, Color color, boolean isBoundary) {
 		super();
 		this.x = x;
 		this.y = y;
 		this.color = color;
+		this.isBoundary = isBoundary;
 	} 
 	
 	public Color getWrapGonColor() {
@@ -38,16 +40,14 @@ public class PixelMeta {
 	}
 	
 	public boolean isBoundary() {
-		if(isBoundary == null) {
-			if(color.getRed() == color.getBlue() && color.getRed() == color.getGreen()) {
-				isBoundary = Boolean.FALSE;
-				return false;
-			} else {
-				isBoundary = Boolean.TRUE;
-				return true;
-			}	
-		} else {
-			return isBoundary.booleanValue();
-		}
+		return isBoundary;
+	}
+	
+	public boolean isFlooded() {
+		return isFlooded;
+	}
+
+	public void markFlooded() {
+		isFlooded = true;
 	}
 }

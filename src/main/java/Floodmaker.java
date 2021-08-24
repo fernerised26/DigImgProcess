@@ -23,10 +23,10 @@ public class Floodmaker {
 	}
 	
 	public static void floatFlood(PixelMeta[][] pxlTracker, int seedX, int seedY, int width, int height, Set<PixelMeta> backlog, Color wrapGonColor) throws LogicException {
-		if(wrapGonColor == null) {
-			throw new LogicException("Recursive prepFlood invocation must have a wrapping polygon color specified. "
-					+ "Seed coordinate: (" + seedX + ", " + seedY + ")");
-		}
+//		if(wrapGonColor == null) {
+//			throw new LogicException("Recursive prepFlood invocation must have a wrapping polygon color specified. "
+//					+ "Seed coordinate: (" + seedX + ", " + seedY + ")");
+//		}
 		while(true) {
 			int tempX = seedX, tempY = seedY;
 			while(seedY != 0 && !pxlTracker[seedY - 1][seedX].isBoundary()) {
@@ -43,10 +43,10 @@ public class Floodmaker {
 	}
 	
 	public static void flood(PixelMeta[][] pxlTracker, int seedX, int seedY, int width, int height, Set<PixelMeta> backlog, Color wrapGonColor) throws LogicException {
-		if(wrapGonColor == null) {
-			throw new LogicException("flood invocation must have a wrapping polygon color specified. "
-					+ "Seed coordinate: (" + seedX + ", " + seedY + ")");
-		}
+//		if(wrapGonColor == null) {
+//			throw new LogicException("flood invocation must have a wrapping polygon color specified. "
+//					+ "Seed coordinate: (" + seedX + ", " + seedY + ")");
+//		}
 		int scanRightBuffer = 0;
 		
 		do {
@@ -63,6 +63,7 @@ public class Floodmaker {
 				for(; seedX != 0 && isValidFloodTarget(pxlTracker[seedY][seedX - 1]); rowLength++, scanRightBuffer++) {
 					PixelMeta currPixel = pxlTracker[seedY][--seedX];
 					backlog.remove(currPixel);
+					currPixel.markFlooded();
 					currPixel.setWrapGonColor(wrapGonColor);
 					if(seedY != 0 && isValidFloodTarget(pxlTracker[seedY - 1][seedX])) {
 						floatFlood(pxlTracker, seedX, seedY - 1, width, height, backlog, wrapGonColor);
@@ -73,6 +74,7 @@ public class Floodmaker {
 			for(; rightX < width && isValidFloodTarget(pxlTracker[seedY][rightX]); rowLength++, rightX++) {
 				PixelMeta currPixel = pxlTracker[seedY][rightX];
 				backlog.remove(currPixel);
+				currPixel.markFlooded();
 				currPixel.setWrapGonColor(wrapGonColor);
 			}
 			
@@ -97,6 +99,6 @@ public class Floodmaker {
 		if(pixel.isBoundary()) {
 			return false;
 		}
-		return pixel.getWrapGonColor() == null;
+		return !pixel.isFlooded();
 	}
 }

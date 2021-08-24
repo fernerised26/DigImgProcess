@@ -2,7 +2,6 @@ package main.java;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.util.Arrays;
 
 public class ColorTrackerHandler {
 	
@@ -40,18 +39,14 @@ public class ColorTrackerHandler {
 	public static PixelMeta updateTracker(BufferedImage image, int x, int y, PixelMeta[][] pxlTracker) {
 		int rgb = image.getRGB(x, y);
 		Color color = new Color(rgb);
-		PixelMeta pixel = new PixelMeta(x, y, color);
+		PixelMeta pixel = null;
+		if(color.getRed() == color.getBlue() && color.getRed() == color.getGreen()) {
+			pixel = new PixelMeta(x, y, color, false);
+		} else {
+			pixel = new PixelMeta(x, y, color, true);
+		}	
 		
 		pxlTracker[y][x] = pixel;
 		return pixel;
-	}
-	
-	public static void main(String[] args) {
-		int[][][] test = new int[5][5][];
-		test[0][0] = new int[] {0,1,2};
-		System.out.println(Arrays.toString(test));
-		
-		int[][] arr = new int[5][];
-		System.out.println(Arrays.toString(arr));
 	}
 }
