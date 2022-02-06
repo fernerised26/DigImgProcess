@@ -3,11 +3,13 @@ package main.java;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.imageio.ImageIO;
@@ -22,6 +24,9 @@ public class DotAnalyzer {
 	
 	private static int globalCounter = 0;
 	
+	private static StringBuilder outHtml = new StringBuilder("<!DOCTYPE html><html><head><title>Image processing results</title></head><style>"
+			+ ".gi{border: 1px solid rgba(0, 0, 0, 0.8);padding: 3px;text-align: center;}.gr{display: grid; grid-template-"
+			+ "columns: auto auto; width: 200px;}</style><body>");
 
 	public static void main(String[] args) throws IOException {
 //		System.out.println("Enter absolute directory of scale bar file: ");
@@ -79,7 +84,8 @@ public class DotAnalyzer {
 //		}
 		
 		try {
-			digThroughImages("BoundaryAdvancedTestImgs");
+//			digThroughImages("BoundaryAdvancedTestImgs");
+			digThroughImagesShort("E:\\Pictures\\DigImgWork\\928annotated1");
 		} catch (LogicException e) {
 			e.printStackTrace();
 			System.exit(0);
@@ -118,7 +124,8 @@ public class DotAnalyzer {
 									System.out.println("Processing file: "+imgFileName);
 									PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 0, 0);
 //									visualizeZones(pixelsWithZones);
-									processQDs(pixelsWithZones);
+									processQDs(pixelsWithZones, imgFile.getName());
+									finishHtmlOutput();
 								} else {
 									System.err.println(imgFile.getAbsolutePath() + " is not a file. Please check the contents of the target directory.");
 									System.exit(1);
@@ -136,6 +143,39 @@ public class DotAnalyzer {
 			}
 		} else {
 			System.err.println(startDirPathStr + " is not a directory. Please restart and enter a valid directory.");
+			System.exit(1);
+		}
+	}
+	
+	private static void digThroughImagesShort(String startDirPathStr) throws IOException, LogicException {
+		File startDir = new File(startDirPathStr);
+		if(startDir.isDirectory()) {
+			String[] dirContents = startDir.list();
+			for(int k=0; k < dirContents.length; k++) {
+				
+				String imgFileName = dirContents[k];
+				File imgFile = new File(startDir.getAbsolutePath() + "\\" + imgFileName);
+				
+				if(imgFile.isFile()) {
+					BufferedImage fileAsImg = ImageIO.read(imgFile);
+					System.out.println("Processing file: "+imgFileName);
+					try {
+						PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 0, 0);
+						processQDs(pixelsWithZones, imgFileName);
+						finishHtmlOutput();
+					} catch(LogicException e) {
+						System.err.println(e.getMessage());
+						System.err.println("Skipping: "+imgFileName);
+						continue;
+					}
+//					visualizeZones(pixelsWithZones);
+				} else {
+					System.err.println(imgFile.getAbsolutePath() + " is not a file. Please check the contents of the target directory.");
+					System.exit(1);
+				}
+			}
+		} else {
+			System.err.println(startDir.getAbsolutePath() + " is not a directory. Please check the contents of the target directory.");
 			System.exit(1);
 		}
 	}
@@ -326,7 +366,7 @@ public class DotAnalyzer {
 		}
 	}
 	
-	private static void processQDs(PixelMeta[][] pixelArray) {
+	private static void processQDs(PixelMeta[][] pixelArray, String filename) {
 		System.out.println("Visualizing QDs | timestamp: "+System.currentTimeMillis());
 		int[][] rgbout = new int[pixelArray.length][pixelArray[0].length];
 		Map<Color, Integer> boundaryColorToQDCount = new HashMap<>();
@@ -344,7 +384,11 @@ public class DotAnalyzer {
 					} else {
 						boundaryColorToQDCount.put(currWrapGonColor, 1);
 					}
-					rgbout[y][x] = Color.RED.getRGB();
+					if(currWrapGonColor == null) {
+						rgbout[y][x] = Color.BLACK.getRGB();
+					} else {
+						rgbout[y][x] = currWrapGonColor.getRGB();
+					}
 				} else {
 					rgbout[y][x] = currRgb;
 				}
@@ -352,12 +396,55 @@ public class DotAnalyzer {
 			}
 		}
 		BufferedImage imgout = DrawMyThing.createImage(rgbout);
-		File output = new File("testout\\BoundAdvancedTestOut4.tif");
+		
+		File output = new File("testout\\"+filename.substring(0, filename.indexOf("."))+".tif");
 		try {
 			ImageIO.write(imgout, "tif", output);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println(filename);
 		System.out.println(boundaryColorToQDCount);
+		
+		addFileToHtmlOutput(boundaryColorToQDCount, filename);
+	}
+	
+	private static void addFileToHtmlOutput(Map<Color, Integer> boundaryColorToQDCount, String filename) {
+		outHtml.append("<div>");
+		outHtml.append(filename);
+		outHtml.append("<div class=\"gr\">");
+		
+		for(Entry<Color, Integer> entry : boundaryColorToQDCount.entrySet()) {
+			Color currColor = entry.getKey();
+			if(currColor != null) {
+				outHtml.append("<div class=\"gi\" style=\"height: 50px;background-color: rgb(");
+				outHtml.append(currColor.getRed());
+				outHtml.append(",");
+				outHtml.append(currColor.getGreen());
+				outHtml.append(",");
+				outHtml.append(currColor.getBlue());
+				outHtml.append(");\"></div><div class=\"gi\">");
+				outHtml.append(entry.getValue());
+				outHtml.append("</div>");
+			}
+		}
+		outHtml.append("</div></div>");
+	}
+	
+	private static void finishHtmlOutput() throws IOException {
+		outHtml.append("</body></html>");
+		File htmlFileOut = new File("testout\\htmlReport.html");
+		htmlFileOut.createNewFile();
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(htmlFileOut);
+			writer.write(outHtml.toString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			writer.close();
+		}
+		
 	}
 }
