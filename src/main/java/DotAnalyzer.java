@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -22,11 +23,13 @@ public class DotAnalyzer {
 	private static final int BAR_SCAN_HEIGHT = 1860;
 	private static final int WORD_SCAN_HEIGHT = 1886;
 	
+	private static final DecimalFormat DF = new DecimalFormat("0.000");
+	
 	private static int globalCounter = 0;
 	
 	private static StringBuilder outHtml = new StringBuilder("<!DOCTYPE html><html><head><title>Image processing results</title></head><style>"
 			+ ".gi{border: 1px solid rgba(0, 0, 0, 0.8);padding: 3px;text-align: center;}.gr{display: grid; grid-template-"
-			+ "columns: auto auto; width: 200px;}</style><body>");
+			+ "columns: auto auto auto auto; width: 400px;}</style><body>");
 
 	public static void main(String[] args) throws IOException {
 //		System.out.println("Enter absolute directory of scale bar file: ");
@@ -85,7 +88,10 @@ public class DotAnalyzer {
 		
 		try {
 //			digThroughImages("BoundaryAdvancedTestImgs");
-			digThroughImagesShort("E:\\Pictures\\DigImgWork\\928annotated1");
+//			digThroughImagesShort("E:\\Pictures\\DigImgWork\\928annotated2");
+//			digThroughImagesShort("E:\\Pictures\\DigImgWork\\Images to be processed2-19\\Images to be processed\\pngs");
+//			digThroughImagesShort("E:\\Pictures\\DigImgWork\\JMF-2021-05-16 TEM Images\\0.25 Hr\\500nm");
+			digThroughImagesMedium("E:\\Pictures\\DigImgWork\\E1-4hr");
 		} catch (LogicException e) {
 			e.printStackTrace();
 			System.exit(0);
@@ -147,6 +153,47 @@ public class DotAnalyzer {
 		}
 	}
 	
+	private static void digThroughImagesMedium(String startDirPathStr) throws IOException, LogicException {
+		System.out.println("Scanning Directory: "+startDirPathStr);
+		File startDir = new File(startDirPathStr);
+		
+		if(startDir.isDirectory()) { //top level, dir containing dirs with times
+			String[] startDirContents = startDir.list();
+			for(int i=0; i < startDirContents.length; i++) {
+				
+				String scaleDirName = startDirContents[i];
+				File groupingScaleDir = new File(startDir.getAbsolutePath() + "\\" + scaleDirName);
+				
+				if(groupingScaleDir.isDirectory()) { //two levels down, dir containing images
+					String[] groupingScaleDirContents = groupingScaleDir.list();
+					for(int k=0; k < groupingScaleDirContents.length; k++) {
+						
+						String imgFileName = groupingScaleDirContents[k];
+						File imgFile = new File(groupingScaleDir.getAbsolutePath() + "\\" + imgFileName);
+						
+						if(imgFile.isFile()) {
+							BufferedImage fileAsImg = ImageIO.read(imgFile);
+							System.out.println("Processing file: "+imgFileName);
+							PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 0, 0);
+//									visualizeZones(pixelsWithZones);
+							processQDs(pixelsWithZones, imgFile.getName(), scaleDirName, fileAsImg);
+							finishHtmlOutput();
+						} else {
+							System.err.println(imgFile.getAbsolutePath() + " is not a file. Please check the contents of the target directory.");
+							System.exit(1);
+						}
+					}
+				} else {
+					System.err.println(groupingScaleDir.getAbsolutePath() + " is not a directory. Please check the contents of the target directory.");
+					System.exit(1);
+				}
+			}
+		} else {
+			System.err.println(startDirPathStr + " is not a directory. Please restart and enter a valid directory.");
+			System.exit(1);
+		}
+	}
+	
 	private static void digThroughImagesShort(String startDirPathStr) throws IOException, LogicException {
 		File startDir = new File(startDirPathStr);
 		if(startDir.isDirectory()) {
@@ -163,6 +210,7 @@ public class DotAnalyzer {
 						PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 0, 0);
 						processQDs(pixelsWithZones, imgFileName);
 						finishHtmlOutput();
+//						scanForBlack(fileAsImg, 0, 0);
 					} catch(LogicException e) {
 						System.err.println(e.getMessage());
 						System.err.println("Skipping: "+imgFileName);
@@ -180,7 +228,7 @@ public class DotAnalyzer {
 		}
 	}
 
-	private static int getScaleBarLength(BufferedImage image) throws IOException {
+	private static int getScaleBarLength(BufferedImage image) {
 		if(image != null) {
 			int width = image.getWidth();
 			int barRightmostIndex = -1;
@@ -266,6 +314,21 @@ public class DotAnalyzer {
 			}
 		}
 	}
+	
+//	private static void scanForBlack(BufferedImage image, int startX, int startY) {
+//		int imgWidth = image.getWidth();
+//		int imgHeight = image.getHeight();
+//		
+//		System.out.println("Scanning for black");
+//		for(int y = 0; y < imgWidth; y++) {
+//			for(int x = 0; x < imgWidth; x++) {
+//				Color color = new Color(image.getRGB(x, y));
+//				if(color.getRed() == color.getBlue() && color.getRed() == color.getGreen() && color.getRed() == 0) {
+//					System.out.println("Found black: ("+x+", "+y+")");
+//				} 
+//			}
+//		}
+//	}
 	
 	//Iterates through all pixels, classifying each pixel by which color they are most deeply found in
 	private static PixelMeta[][] identifyZones(BufferedImage image, int startX, int startY) throws LogicException {
@@ -409,6 +472,60 @@ public class DotAnalyzer {
 		addFileToHtmlOutput(boundaryColorToQDCount, filename);
 	}
 	
+	private static void processQDs(PixelMeta[][] pixelArray, String filename, String scaleDirName, BufferedImage rawImg) throws LogicException {
+		System.out.println("Visualizing QDs | timestamp: "+System.currentTimeMillis());
+		int[][] rgbout = new int[pixelArray.length][pixelArray[0].length];
+		Map<Color, CountTuple> boundaryColorToQDCount = new HashMap<>();
+		
+		for(int y=0; y < pixelArray.length; y++) {
+			PixelMeta[] row = pixelArray[y];
+			for(int x=0; x < row.length; x++) {
+				PixelMeta currPixel = pixelArray[y][x];
+				Color currWrapGonColor = currPixel.getWrapGonColor();
+				int currRed = currPixel.getColor().getRed();
+				
+				CountTuple currColorCount = null;
+				if(boundaryColorToQDCount.containsKey(currWrapGonColor)) {
+					currColorCount = boundaryColorToQDCount.get(currWrapGonColor);
+				} else {
+					currColorCount = new CountTuple();
+					boundaryColorToQDCount.put(currWrapGonColor, currColorCount);
+				}
+				currColorCount.totalCount += 1;
+				
+				//TODO modify logic to be calibrated around the orange
+				if(currRed < 75 && !currPixel.isBoundary()) {
+					currColorCount.hitCount += 1;
+					if(currWrapGonColor == null) {
+						rgbout[y][x] = Color.BLACK.getRGB();
+					} else {
+						rgbout[y][x] = currWrapGonColor.getRGB();
+					}
+				} else {
+					rgbout[y][x] = currPixel.getColor().getRGB();
+				}
+				
+			}
+		}
+		BufferedImage imgout = DrawMyThing.createImage(rgbout);
+		
+		File output = new File("testout\\"+filename.substring(0, filename.indexOf("."))+".tif");
+		try {
+			ImageIO.write(imgout, "tif", output);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		System.out.println(filename);
+		System.out.println(boundaryColorToQDCount);
+		
+		int scaleBarLength = -5;
+		scaleBarLength = getScaleBarLength(rawImg);
+		if(scaleBarLength < 1) {
+			throw new LogicException("Scale bar of invalid length: "+ scaleBarLength);
+		}
+		addFileToHtmlOutput(boundaryColorToQDCount, filename, scaleBarLength, Integer.parseInt(scaleDirName));
+	}
+	
 	private static void addFileToHtmlOutput(Map<Color, Integer> boundaryColorToQDCount, String filename) {
 		outHtml.append("<div>");
 		outHtml.append(filename);
@@ -431,6 +548,35 @@ public class DotAnalyzer {
 		outHtml.append("</div></div>");
 	}
 	
+	private static void addFileToHtmlOutput(Map<Color, CountTuple> boundaryColorToTuple, String filename, int scaleBarLength, int scaleDirNameAsInt) {
+		outHtml.append("<div>");
+		outHtml.append(filename);
+		outHtml.append("<div class=\"gr\">");
+		
+		double lengthPerPixel = (double) scaleDirNameAsInt/scaleBarLength;
+		double areaPerPixel = lengthPerPixel*lengthPerPixel;
+		
+		for(Entry<Color, CountTuple> entry : boundaryColorToTuple.entrySet()) {
+			Color currColor = entry.getKey();
+			if(currColor != null) {
+				outHtml.append("<div class=\"gi\" style=\"height: 50px;background-color: rgb(");
+				outHtml.append(currColor.getRed());
+				outHtml.append(",");
+				outHtml.append(currColor.getGreen());
+				outHtml.append(",");
+				outHtml.append(currColor.getBlue());
+				outHtml.append(");\"></div><div class=\"gi\">");
+				outHtml.append(entry.getValue().hitCount);
+				outHtml.append("</div><div class=\"gi\">");
+				outHtml.append(DF.format(areaPerPixel*entry.getValue().totalCount)+"nm^2");
+				outHtml.append("</div><div class=\"gi\">");
+				outHtml.append(DF.format(areaPerPixel*entry.getValue().hitCount)+"nm^2");
+				outHtml.append("</div>");
+			}
+		}
+		outHtml.append("</div></div>");
+	}
+	
 	private static void finishHtmlOutput() throws IOException {
 		outHtml.append("</body></html>");
 		File htmlFileOut = new File("testout\\htmlReport.html");
@@ -446,5 +592,15 @@ public class DotAnalyzer {
 			writer.close();
 		}
 		
+	}
+	
+	private static class CountTuple {
+		int hitCount;
+		int totalCount;
+		
+		CountTuple(){
+			hitCount = 0;
+			totalCount = 0;
+		}
 	}
 }

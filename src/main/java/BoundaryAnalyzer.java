@@ -24,8 +24,14 @@ public class BoundaryAnalyzer {
 			Color currRgb = currPixel.getColor();
 //			System.out.println("Current XY: (" + i + ", " + initY + ")");
 //			System.out.println("Current Color: (" + currRgb.getRed() + ", " + currRgb.getGreen() + ", " + currRgb.getBlue() + ")");
+			
+			//outermost border is black and is currently being scanned, terminate to avoid false discontinuity detection
+			if(i-1 < 0 && currRgb.getRed() == currRgb.getBlue() && currRgb.getBlue() == currRgb.getGreen()) {
+				break;
+			}
 			//account for boundaries that are multiple pixels thick
 			if(currPixel.isBoundary() && !insideBoundary) {
+//				System.out.println("Checkpoint 1 - Crossed into a boundary");
 				Integer crossings = boundingColorsToCrossings.get(currRgb);
 				if(crossings == null) {
 					boundingColorsToCrossings.put(currRgb, Integer.valueOf(1));
@@ -36,6 +42,7 @@ public class BoundaryAnalyzer {
 				lastBoundaryColor = currRgb;
 				lastBoundaryEntryPoint = currPixel;
 			} else if(currPixel.isBoundary() && insideBoundary) {
+//				System.out.println("Checkpoint 2 - Still inside a boundary");
 				if(!currRgb.equals(lastBoundaryColor)) {
 					handleVertexCrossing(lastBoundaryEntryPoint, lastBoundaryColor, pxlTracker, i, initY, boundingColorsToCrossings, width, height);
 					
@@ -46,9 +53,13 @@ public class BoundaryAnalyzer {
 						boundingColorsToCrossings.put(currRgb, Integer.valueOf(crossings.intValue()+1));
 					}
 					lastBoundaryColor = currRgb;
+					lastBoundaryEntryPoint = currPixel;
 				}
 			} else {
+//				System.out.println("Checkpoint 3 - Not in a boundary");
 				if(insideBoundary && lastBoundaryColor != null) {
+//					System.out.println("Last Boundary Entry Point: "+lastBoundaryEntryPoint.getX() + ", "+lastBoundaryEntryPoint.getY());
+//					System.out.println("Last Boundary Color: "+lastBoundaryColor);
 					handleVertexCrossing(lastBoundaryEntryPoint, lastBoundaryColor, pxlTracker, i, initY, boundingColorsToCrossings, width, height);
 				}
 				
@@ -60,6 +71,7 @@ public class BoundaryAnalyzer {
 		for(Entry<Color, Integer> crossCount : boundingColorsToCrossings.entrySet()) {
 			if(crossCount.getValue().intValue() % 2 == 1) {
 				//deepest boundary found, leveraging insertion order of the LinkedHashMap
+//				System.out.println("Returning boundary color: "+crossCount.getKey().toString());
 				return crossCount.getKey();
 			}
 		}
