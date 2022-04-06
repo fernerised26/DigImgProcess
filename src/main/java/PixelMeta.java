@@ -19,6 +19,15 @@ public class PixelMeta {
 		this.isBoundary = isBoundary;
 	} 
 	
+	public PixelMeta(PixelMeta original) {
+		super();
+		this.x = original.getX();
+		this.y = original.getY();
+		this.color = original.getColor();
+		this.isBoundary = original.isBoundary();
+		this.wrapGonColor = original.getWrapGonColor();
+	}
+	
 	public Color getWrapGonColor() {
 		return wrapGonColor;
 	}
