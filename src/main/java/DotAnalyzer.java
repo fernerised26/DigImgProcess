@@ -6,14 +6,17 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.imageio.ImageIO;
 
@@ -29,9 +32,11 @@ public class DotAnalyzer {
 	
 	private static int globalCounter = 0;
 	
-	private static StringBuilder outHtml = new StringBuilder("<!DOCTYPE html><html><head><title>Image processing results</title></head><style>"
-			+ ".gi{border: 1px solid rgba(0, 0, 0, 0.8);padding: 3px;text-align: center;}.gr{display: grid; grid-template-"
-			+ "columns: auto auto auto auto; width: 400px;}.grclus{display: grid; grid-template-columns: auto auto auto; width: 300px}</style><body>");
+	private static StringBuilder outHtmlHeadAndStyle = new StringBuilder("<!DOCTYPE html><html><head><title>Image processing results</title></head><style>"
+			+ "table, th, td {border: 1px solid}</style><body>");
+	
+	private static StringBuilder outHtmlNavTags = new StringBuilder("<div id=\"navtags\"/>");
+	private static StringBuilder outHtmlBody = new StringBuilder("");
 
 	public static void main(String[] args) throws IOException {
 //		System.out.println("Enter absolute directory of scale bar file: ");
@@ -89,18 +94,14 @@ public class DotAnalyzer {
 //		}
 		
 		try {
-//			digThroughImages("BoundaryAdvancedTestImgs");
-//			digThroughImagesShort("E:\\Pictures\\DigImgWork\\928annotated2");
-//			digThroughImagesShort("E:\\Pictures\\DigImgWork\\Images to be processed2-19\\Images to be processed\\pngs");
-//			digThroughImagesShort("E:\\Pictures\\DigImgWork\\TestWork\\clustertest");
-			digThroughImagesMedium("E:\\Pictures\\DigImgWork\\ClusterBatch");
+			digThroughImages("E:\\Pictures\\DigImgWork\\Aggregate");
+//			digThroughImagesShort("derp");
+//			digThroughImagesMedium("derp");
 		} catch (LogicException e) {
 			e.printStackTrace();
 			System.exit(0);
 		}
 	}
-	
-//	System.out.println(Arrays.toString(startDir.list()));
 	
 	private static void digThroughImages(String startDirPathStr) throws IOException, LogicException {
 		System.out.println("Scanning Directory: "+startDirPathStr);
@@ -114,6 +115,8 @@ public class DotAnalyzer {
 				File groupingTimeDir = new File(startDirPathStr + "\\" + timeDirName);
 				
 				if(groupingTimeDir.isDirectory()) { //one level down, dir containing dirs with scales
+					Map<Integer, Integer> roundedCountsBySize = new TreeMap<Integer, Integer>();
+					
 					String[] groupingTimeDirContents = groupingTimeDir.list();
 					for(int j=0; j < groupingTimeDirContents.length; j++) {
 						
@@ -132,8 +135,7 @@ public class DotAnalyzer {
 									System.out.println("Processing file: "+imgFileName);
 									PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 0, 0);
 //									visualizeZones(pixelsWithZones);
-									processQDsWithGrouping(pixelsWithZones, imgFile.getName(), scaleDirName, fileAsImg);
-									finishHtmlOutput();
+									processQDs(pixelsWithZones, imgFile.getName(), scaleDirName, fileAsImg, roundedCountsBySize);
 								} else {
 									System.err.println(imgFile.getAbsolutePath() + " is not a file. Please check the contents of the target directory.");
 									System.exit(1);
@@ -144,6 +146,8 @@ public class DotAnalyzer {
 							System.exit(1);
 						}
 					}
+					
+					createTimeAggregateOutput(timeDirName, roundedCountsBySize);
 				} else {
 					System.err.println(groupingTimeDir.getAbsolutePath() + " is not a directory. Please check the contents of the target directory.");
 					System.exit(1);
@@ -153,6 +157,7 @@ public class DotAnalyzer {
 			System.err.println(startDirPathStr + " is not a directory. Please restart and enter a valid directory.");
 			System.exit(1);
 		}
+		finishHtmlOutput();
 	}
 	
 	private static void digThroughImagesMedium(String startDirPathStr) throws IOException, LogicException {
@@ -178,7 +183,7 @@ public class DotAnalyzer {
 							System.out.println("Processing file: "+imgFileName);
 							PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 0, 0);
 //									visualizeZones(pixelsWithZones);
-							processQDsWithGrouping(pixelsWithZones, imgFile.getName(), scaleDirName, fileAsImg);
+							processQDs(pixelsWithZones, imgFile.getName(), scaleDirName, fileAsImg);
 							finishHtmlOutput();
 						} else {
 							System.err.println(imgFile.getAbsolutePath() + " is not a file. Please check the contents of the target directory.");
@@ -210,7 +215,7 @@ public class DotAnalyzer {
 					System.out.println("Processing file: "+imgFileName);
 					try {
 						PixelMeta[][] pixelsWithZones = identifyZones(fileAsImg, 0, 0);
-						processQDsWithGrouping(pixelsWithZones, imgFileName, "500", fileAsImg);
+						processQDs(pixelsWithZones, imgFileName, "500", fileAsImg);
 						finishHtmlOutput();
 //						scanForBlack(fileAsImg, 0, 0);
 					} catch(LogicException e) {
@@ -431,104 +436,9 @@ public class DotAnalyzer {
 			e.printStackTrace();
 		}
 	}
-	
-	private static void processQDs(PixelMeta[][] pixelArray, String filename) {
-		System.out.println("Visualizing QDs | timestamp: "+System.currentTimeMillis());
-		int[][] rgbout = new int[pixelArray.length][pixelArray[0].length];
-		Map<Color, Integer> boundaryColorToQDCount = new HashMap<>();
-		
-		for(int y=0; y < pixelArray.length; y++) {
-			PixelMeta[] row = pixelArray[y];
-			for(int x=0; x < row.length; x++) {
-				PixelMeta currPixel = pixelArray[y][x];
-				Color currWrapGonColor = currPixel.getWrapGonColor();
-				int currRgb = currPixel.getColor().getRGB();
-				
-				if(currRgb < -8600000 && !currPixel.isBoundary()) {
-					if(boundaryColorToQDCount.containsKey(currWrapGonColor)) {
-						boundaryColorToQDCount.put(currWrapGonColor, boundaryColorToQDCount.get(currWrapGonColor) + 1);
-					} else {
-						boundaryColorToQDCount.put(currWrapGonColor, 1);
-					}
-					if(currWrapGonColor == null) {
-						rgbout[y][x] = Color.BLACK.getRGB();
-					} else {
-						rgbout[y][x] = currWrapGonColor.getRGB();
-					}
-				} else {
-					rgbout[y][x] = currRgb;
-				}
-				
-			}
-		}
-		BufferedImage imgout = DrawMyThing.createImage(rgbout);
-		
-		File output = new File("testout\\"+filename.substring(0, filename.indexOf("."))+".tif");
-		try {
-			ImageIO.write(imgout, "tif", output);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		System.out.println(filename);
-		System.out.println(boundaryColorToQDCount);
-		
-		addFileToHtmlOutput(boundaryColorToQDCount, filename);
-	}
+
 	
 	private static void processQDs(PixelMeta[][] pixelArray, String filename, String scaleDirName, BufferedImage rawImg) throws LogicException {
-		System.out.println("Visualizing QDs | timestamp: "+System.currentTimeMillis());
-		int[][] rgbout = new int[pixelArray.length][pixelArray[0].length];
-		Map<Color, CountTuple> boundaryColorToQDCount = new HashMap<>();
-		
-		for(int y=0; y < pixelArray.length; y++) {
-			PixelMeta[] row = pixelArray[y];
-			for(int x=0; x < row.length; x++) {
-				PixelMeta currPixel = pixelArray[y][x];
-				Color currWrapGonColor = currPixel.getWrapGonColor();
-				int currRed = currPixel.getColor().getRed();
-				
-				CountTuple currColorCount = null;
-				if(boundaryColorToQDCount.containsKey(currWrapGonColor)) {
-					currColorCount = boundaryColorToQDCount.get(currWrapGonColor);
-				} else {
-					currColorCount = new CountTuple();
-					boundaryColorToQDCount.put(currWrapGonColor, currColorCount);
-				}
-				currColorCount.totalCount += 1;
-				
-				if(currRed < 75 && !currPixel.isBoundary()) {
-					currColorCount.hitCount += 1;
-					if(currWrapGonColor == null) {
-						rgbout[y][x] = Color.BLACK.getRGB();
-					} else {
-						rgbout[y][x] = currWrapGonColor.getRGB();
-					}
-				} else {
-					rgbout[y][x] = currPixel.getColor().getRGB();
-				}
-				
-			}
-		}
-		BufferedImage imgout = DrawMyThing.createImage(rgbout);
-		
-		File output = new File("testout\\"+filename.substring(0, filename.indexOf("."))+".tif");
-		try {
-			ImageIO.write(imgout, "tif", output);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		System.out.println(filename);
-		System.out.println(boundaryColorToQDCount);
-		
-		int scaleBarLength = -5;
-		scaleBarLength = getScaleBarLength(rawImg);
-		if(scaleBarLength < 1) {
-			throw new LogicException("Scale bar of invalid length: "+ scaleBarLength);
-		}
-		addFileToHtmlOutput(boundaryColorToQDCount, filename, scaleBarLength, Integer.parseInt(scaleDirName));
-	}
-	
-	private static void processQDsWithGrouping(PixelMeta[][] pixelArray, String filename, String scaleDirName, BufferedImage rawImg) throws LogicException {
 		System.out.println("Visualizing QDs | timestamp: "+System.currentTimeMillis());
 		int[][] rgbout = new int[pixelArray.length][pixelArray[0].length];
 		PixelMeta[][] clusteringTemp = new PixelMeta[pixelArray.length][pixelArray[0].length];
@@ -588,119 +498,273 @@ public class DotAnalyzer {
 		if(scaleBarLength < 1) {
 			throw new LogicException("Scale bar of invalid length: "+ scaleBarLength);
 		}
-		addFileToHtmlOutput(boundaryColorToQDCount, filename, scaleBarLength, Integer.parseInt(scaleDirName), countByClusterSize);
-	}
-	
-	private static void addFileToHtmlOutput(Map<Color, Integer> boundaryColorToQDCount, String filename) {
-		outHtml.append("<div>");
-		outHtml.append(filename);
-		outHtml.append("<div class=\"gr\">");
 		
-		for(Entry<Color, Integer> entry : boundaryColorToQDCount.entrySet()) {
-			Color currColor = entry.getKey();
-			if(currColor != null) {
-				outHtml.append("<div class=\"gi\" style=\"height: 50px;background-color: rgb(");
-				outHtml.append(currColor.getRed());
-				outHtml.append(",");
-				outHtml.append(currColor.getGreen());
-				outHtml.append(",");
-				outHtml.append(currColor.getBlue());
-				outHtml.append(");\"></div><div class=\"gi\">");
-				outHtml.append(entry.getValue());
-				outHtml.append("</div>");
-			}
-		}
-		outHtml.append("</div></div>");
-	}
-	
-	private static void addFileToHtmlOutput(Map<Color, CountTuple> boundaryColorToTuple, String filename, int scaleBarLength, int scaleDirNameAsInt) {
-		outHtml.append("<div>");
-		outHtml.append(filename);
-		outHtml.append("<div class=\"gr\">");
-		
-		double lengthPerPixel = (double) scaleDirNameAsInt/scaleBarLength;
+		double lengthPerPixel = (double) Integer.parseInt(scaleDirName)/scaleBarLength;
 		double areaPerPixel = lengthPerPixel*lengthPerPixel;
 		
+		addFileToHtmlOutput(boundaryColorToQDCount, filename, countByClusterSize, areaPerPixel);
+	}
+	
+	private static void processQDs(PixelMeta[][] pixelArray, String filename, String scaleDirName, BufferedImage rawImg, Map<Integer, Integer> roundedCountsBySize) throws LogicException {
+		System.out.println("Visualizing QDs | timestamp: "+System.currentTimeMillis());
+		System.out.println(filename);
+		int[][] rgbout = new int[pixelArray.length][pixelArray[0].length];
+		PixelMeta[][] clusteringTemp = new PixelMeta[pixelArray.length][pixelArray[0].length];
+		Queue<PixelMeta> clusterCandidates = new LinkedList<>();
+		Map<Color, CountTuple> boundaryColorToQDCount = new HashMap<>();
+		
+		for(int y=0; y < pixelArray.length; y++) {
+			PixelMeta[] row = pixelArray[y];
+			for(int x=0; x < row.length; x++) {
+				PixelMeta currPixel = pixelArray[y][x];
+				Color currWrapGonColor = currPixel.getWrapGonColor();
+				int currRed = currPixel.getColor().getRed();
+				
+				CountTuple currColorCount = null;
+				if(boundaryColorToQDCount.containsKey(currWrapGonColor)) {
+					currColorCount = boundaryColorToQDCount.get(currWrapGonColor);
+				} else {
+					currColorCount = new CountTuple();
+					boundaryColorToQDCount.put(currWrapGonColor, currColorCount);
+				}
+				currColorCount.totalCount += 1;
+				
+				if(currRed < 75 && !currPixel.isBoundary()) {
+					currColorCount.hitCount += 1;
+					if(currWrapGonColor == null) {
+						rgbout[y][x] = Color.BLACK.getRGB();
+					} else {
+						rgbout[y][x] = currWrapGonColor.getRGB();
+						PixelMeta clusterAnalysisPixel = new PixelMeta(currPixel);
+						clusterCandidates.add(clusterAnalysisPixel);
+						clusteringTemp[y][x] = clusterAnalysisPixel;
+					}
+				} else {
+					rgbout[y][x] = currPixel.getColor().getRGB();
+				}
+				
+			}
+		}
+		BufferedImage imgout = DrawMyThing.createImage(rgbout);
+		
+//		File output = new File("testout\\"+filename.substring(0, filename.indexOf("."))+".tif");
+//		try {
+//			ImageIO.write(imgout, "tif", output);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+		System.out.println(boundaryColorToQDCount);
+		
+		int[][] rgbout2 = new int[pixelArray.length][pixelArray[0].length];
+		System.arraycopy(rgbout, 0, rgbout2, 0, rgbout.length);
+		
+		Map<Integer, Integer> countByClusterSize = ClusterAnalyzer.analyzeClusters(clusteringTemp, clusterCandidates, pixelArray[0].length, pixelArray.length, rgbout2, filename);
+		
+		int scaleBarLength = -5;
+		scaleBarLength = getScaleBarLength(rawImg);
+		if(scaleBarLength < 1) {
+			throw new LogicException("Scale bar of invalid length: "+ scaleBarLength);
+		}
+		
+		double lengthPerPixel = (double) Integer.parseInt(scaleDirName)/scaleBarLength;
+		double areaPerPixel = lengthPerPixel*lengthPerPixel;
+		
+		List<ClusterTuple> clusterSizeDataList = new ArrayList<>();
+		
+		for(Entry<Integer, Integer> entry : countByClusterSize.entrySet()) {
+			Integer sizeInPixelsWrapped = entry.getKey();
+			int sizeInPixels = sizeInPixelsWrapped.intValue();
+			double trueSize = sizeInPixels*areaPerPixel;
+			int trueSizeRounded = (int) (trueSize + 0.5);
+			Integer frequencyWrapped = entry.getValue();
+			int frequency = frequencyWrapped.intValue();
+			ClusterTuple clusterTuple = new ClusterTuple(entry.getKey(), trueSize, trueSizeRounded, frequency);
+			clusterSizeDataList.add(clusterTuple);
+			
+			Integer roundedSize = Integer.valueOf(trueSizeRounded);
+			Integer roundedSizeFreq = roundedCountsBySize.get(roundedSize);
+			if(roundedSizeFreq != null) {
+				roundedCountsBySize.put(roundedSize, Integer.valueOf(roundedSizeFreq.intValue() + frequency));
+			} else {
+				roundedCountsBySize.put(roundedSize, frequencyWrapped);
+			}
+		}
+		addFileToHtmlOutput(boundaryColorToQDCount, filename, clusterSizeDataList, areaPerPixel);
+	}
+	
+	private static void addFileToHtmlOutput(Map<Color, CountTuple> boundaryColorToTuple, String filename, Map<Integer, Integer> countByClusterSize, double areaPerPixel) {
+		outHtmlBody.append("<div>");
+		outHtmlBody.append(filename);
+		outHtmlBody.append("<table>");
+		
+		outHtmlBody.append("<tr>");
+		outHtmlBody.append("<th>").append("color").append("</th>");
+		outHtmlBody.append("<th>").append("# of dark pixels").append("</th>");
+		outHtmlBody.append("<th>").append("total surface area (nm^2)").append("</th>");
+		outHtmlBody.append("<th>").append("surface area of dark pixels (nm^2)").append("</th>").append("</tr>");
 		for(Entry<Color, CountTuple> entry : boundaryColorToTuple.entrySet()) {
 			Color currColor = entry.getKey();
 			if(currColor != null) {
-				outHtml.append("<div class=\"gi\" style=\"height: 50px;background-color: rgb(");
-				outHtml.append(currColor.getRed());
-				outHtml.append(",");
-				outHtml.append(currColor.getGreen());
-				outHtml.append(",");
-				outHtml.append(currColor.getBlue());
-				outHtml.append(");\"></div><div class=\"gi\">");
-				outHtml.append(entry.getValue().hitCount);
-				outHtml.append("</div><div class=\"gi\">");
-				outHtml.append(DF.format(areaPerPixel*entry.getValue().totalCount)+"nm^2");
-				outHtml.append("</div><div class=\"gi\">");
-				outHtml.append(DF.format(areaPerPixel*entry.getValue().hitCount)+"nm^2");
-				outHtml.append("</div>");
+				outHtmlBody.append("<tr>");
+				outHtmlBody.append("<td style=\"height: 50px;background-color: rgb(");
+				outHtmlBody.append(currColor.getRed());
+				outHtmlBody.append(",");
+				outHtmlBody.append(currColor.getGreen());
+				outHtmlBody.append(",");
+				outHtmlBody.append(currColor.getBlue());
+				outHtmlBody.append(");\"></td><td>");
+				outHtmlBody.append(entry.getValue().hitCount);
+				outHtmlBody.append("</td><td>");
+				outHtmlBody.append(DF.format(areaPerPixel*entry.getValue().totalCount));
+				outHtmlBody.append("</td><td>");
+				outHtmlBody.append(DF.format(areaPerPixel*entry.getValue().hitCount));
+				outHtmlBody.append("</td>").append("</tr>");;
 			}
 		}
-		outHtml.append("</div>").append("</div>");
-	}
-	
-	private static void addFileToHtmlOutput(Map<Color, CountTuple> boundaryColorToTuple, String filename, int scaleBarLength, int scaleDirNameAsInt, Map<Integer, Integer> countByClusterSize) {
-		outHtml.append("<div>");
-		outHtml.append(filename);
-		outHtml.append("<div class=\"gr\">");
-		
-		double lengthPerPixel = (double) scaleDirNameAsInt/scaleBarLength;
-		double areaPerPixel = lengthPerPixel*lengthPerPixel;
-		
-		outHtml.append("<div class=\"gi\">").append("color").append("</div>");
-		outHtml.append("<div class=\"gi\">").append("# of dark pixels").append("</div>");
-		outHtml.append("<div class=\"gi\">").append("total surface area (nm^2)").append("</div>");
-		outHtml.append("<div class=\"gi\">").append("surface area of dark pixels (nm^2)").append("</div>");
-		for(Entry<Color, CountTuple> entry : boundaryColorToTuple.entrySet()) {
-			Color currColor = entry.getKey();
-			if(currColor != null) {
-				outHtml.append("<div class=\"gi\" style=\"height: 50px;background-color: rgb(");
-				outHtml.append(currColor.getRed());
-				outHtml.append(",");
-				outHtml.append(currColor.getGreen());
-				outHtml.append(",");
-				outHtml.append(currColor.getBlue());
-				outHtml.append(");\"></div><div class=\"gi\">");
-				outHtml.append(entry.getValue().hitCount);
-				outHtml.append("</div><div class=\"gi\">");
-				outHtml.append(DF.format(areaPerPixel*entry.getValue().totalCount));
-				outHtml.append("</div><div class=\"gi\">");
-				outHtml.append(DF.format(areaPerPixel*entry.getValue().hitCount));
-				outHtml.append("</div>");
-			}
-		}
-		outHtml.append("</div>").append("<br/>").append("<div class=\"grclus\">");
-		outHtml.append("<div class=\"gi\">").append("# of pixels in cluster").append("</div>");
-		outHtml.append("<div class=\"gi\">").append("cluster area (nm^2)").append("</div>");
-		outHtml.append("<div class=\"gi\">").append("count").append("</div>");
+		outHtmlBody.append("</table>").append("<br/>").append("<table>").append("<tr>");
+		outHtmlBody.append("<th>").append("# of pixels in cluster").append("</th>");
+		outHtmlBody.append("<th>").append("cluster area (nm^2)").append("</th>");
+		outHtmlBody.append("<th>").append("count").append("</th>").append("</tr>");
 		for(Entry<Integer, Integer> entry : countByClusterSize.entrySet()) {
 			int sizeInPxls = entry.getKey();
-			outHtml.append("<div class=\"gi\">").append(sizeInPxls).append("</div>");
-			outHtml.append("<div class=\"gi\">").append(DF.format(areaPerPixel*sizeInPxls)).append("</div>");
-			outHtml.append("<div class=\"gi\">").append(entry.getValue()).append("</div>");
+			outHtmlBody.append("<tr>");
+			outHtmlBody.append("<td>").append(sizeInPxls).append("</td>");
+			outHtmlBody.append("<td>").append(DF.format(areaPerPixel*sizeInPxls)).append("</td>");
+			outHtmlBody.append("<td>").append(entry.getValue()).append("</td>").append("</tr>");
 		}
 		
-		outHtml.append("</div>").append("</div>");
+		outHtmlBody.append("</table>").append("</div>").append("</br>");
+	}
+	
+	private static void addFileToHtmlOutput(Map<Color, CountTuple> boundaryColorToTuple, String filename, List<ClusterTuple> clusterData, double areaPerPixel) {
+		outHtmlBody.append("<div>");
+		outHtmlBody.append(filename);
+		outHtmlBody.append("<table>");
+		
+		outHtmlBody.append("<tr>");
+		outHtmlBody.append("<th>").append("color").append("</th>");
+		outHtmlBody.append("<th>").append("# of dark pixels").append("</th>");
+		outHtmlBody.append("<th>").append("total surface area (nm^2)").append("</th>");
+		outHtmlBody.append("<th>").append("surface area of dark pixels (nm^2)").append("</th>").append("</tr>");
+		for(Entry<Color, CountTuple> entry : boundaryColorToTuple.entrySet()) {
+			Color currColor = entry.getKey();
+			if(currColor != null) {
+				outHtmlBody.append("<tr>");
+				outHtmlBody.append("<td style=\"height: 50px;background-color: rgb(");
+				outHtmlBody.append(currColor.getRed());
+				outHtmlBody.append(",");
+				outHtmlBody.append(currColor.getGreen());
+				outHtmlBody.append(",");
+				outHtmlBody.append(currColor.getBlue());
+				outHtmlBody.append(");\"></td><td>");
+				outHtmlBody.append(entry.getValue().hitCount);
+				outHtmlBody.append("</td><td>");
+				outHtmlBody.append(DF.format(areaPerPixel*entry.getValue().totalCount));
+				outHtmlBody.append("</td><td>");
+				outHtmlBody.append(DF.format(areaPerPixel*entry.getValue().hitCount));
+				outHtmlBody.append("</td>").append("</tr>");;
+			}
+		}
+		outHtmlBody.append("</table>").append("<br/>").append("Raw Cluster Data with precision").append("<table>").append("<tr>");
+		outHtmlBody.append("<th>").append("# of pixels in cluster").append("</th>");
+		outHtmlBody.append("<th>").append("cluster area (nm^2)").append("</th>");
+		outHtmlBody.append("<th>").append("rounded area (nm^2)").append("</th>");
+		outHtmlBody.append("<th>").append("count").append("</th>").append("</tr>");
+		for(ClusterTuple clusterEntry : clusterData) {
+			outHtmlBody.append("<tr>");
+			outHtmlBody.append("<td>").append(clusterEntry.sizeInPixels).append("</td>");
+			outHtmlBody.append("<td>").append(DF.format(clusterEntry.trueSize)).append("</td>");
+			outHtmlBody.append("<td>").append(clusterEntry.trueSizeRounded).append("</td>");
+			outHtmlBody.append("<td>").append(clusterEntry.frequency).append("</td>").append("</tr>");
+		}
+		
+		outHtmlBody.append("</table>").append("</div>").append("</br>");
 	}
 	
 	private static void finishHtmlOutput() throws IOException {
-		outHtml.append("</body></html>");
+		outHtmlBody.append("</body></html>");
 		File htmlFileOut = new File("testout\\htmlReport.html");
 		htmlFileOut.createNewFile();
 		FileWriter writer = null;
 		try {
 			writer = new FileWriter(htmlFileOut);
-			writer.write(outHtml.toString());
+			writer.write(outHtmlHeadAndStyle.append(outHtmlNavTags).append(outHtmlBody).toString());
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			writer.close();
 		}
 		
+	}
+	
+//	private static void addTimeAggregateToHtmlOutput(String timeDirName, Map<Integer, Integer> roundedCountsBySize) throws LogicException {
+//		String tagId = timeDirName.replace(" ", "_");
+//		outHtmlNavTags.append("<a href=\"#").append(tagId).append("\">Go to aggregate for ").append(timeDirName).append("</a><br/>");
+//		
+//		outHtmlBody.append("<a href=\"#navtags\"/>Go back to nav tags</a><br/>");
+//		outHtmlBody.append("<div id=").append(tagId).append(">Aggregate Data for ").append(timeDirName).append("<table>").append("<tr>");
+//		outHtmlBody.append("<th>").append("rounded area (nm^2)").append("</th>");
+//		outHtmlBody.append("<th>").append("count").append("</th>").append("</tr>");
+//		
+//		int tracker = 0;
+//		for(Entry<Integer, Integer> entry : roundedCountsBySize.entrySet()) {
+//			int currSize = entry.getKey().intValue();
+//			if(currSize - tracker > 1) {
+//				while(currSize - tracker > 1) {
+//					outHtmlBody.append("<tr>");
+//					outHtmlBody.append("<td>").append(Integer.toString(tracker)).append("</td>");
+//					outHtmlBody.append("<td>").append("0").append("</td>").append("</tr>");
+//					tracker++;
+//				}
+//			} else if(currSize - tracker < 1) {
+//				throw new LogicException("Tracker skipped ahead of (current smallest size - 1). Current dir: " + timeDirName + " Current size: " + currSize + " Current tracker: " + tracker);
+//			}
+//			
+//			outHtmlBody.append("<tr>");
+//			outHtmlBody.append("<td>").append(entry.getKey().toString()).append("</td>");
+//			outHtmlBody.append("<td>").append(entry.getValue().toString()).append("</td>").append("</tr>");
+//			tracker = currSize;
+//		}
+//		
+//		outHtmlBody.append("</table>").append("</div>").append("</br>");
+//		outHtmlBody.append("<a href=\"navtags\"/>Go back to nav tags</a><br/>");
+//	}
+	
+	private static void createTimeAggregateOutput(String timeDirName, Map<Integer, Integer> roundedCountsBySize) throws IOException, LogicException {
+		int tracker = 0;
+		StringBuilder timeAggSB = new StringBuilder();
+		
+		timeAggSB.append("rounded area (nm^2)").append(",");
+		timeAggSB.append("count").append("\n");
+		
+		for(Entry<Integer, Integer> entry : roundedCountsBySize.entrySet()) {
+			int currSize = entry.getKey().intValue();
+			if(currSize - tracker > 1) {
+				while(currSize - tracker > 1) {
+					tracker++;
+					timeAggSB.append(Integer.toString(tracker)).append(",");
+					timeAggSB.append("0").append("\n");
+				}
+			} else if(currSize - tracker < 1) {
+				throw new LogicException("Tracker skipped ahead of (current smallest size - 1). Current dir: " + timeDirName + " Current size: " + currSize + " Current tracker: " + tracker);
+			}
+			
+			timeAggSB.append(entry.getKey().toString()).append(",");
+			timeAggSB.append(entry.getValue().toString()).append("\n");
+			tracker = currSize;
+		}
+		
+		File timeAggFileOut = new File("testout\\timeAgg-"+timeDirName+".csv");
+		timeAggFileOut.createNewFile();
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(timeAggFileOut);
+			writer.write(timeAggSB.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			writer.close();
+		}
 	}
 	
 	private static class CountTuple {
@@ -717,6 +781,20 @@ public class DotAnalyzer {
 			StringBuilder builder = new StringBuilder();
 			builder.append("CountTuple [hitCount=").append(hitCount).append(", totalCount=").append(totalCount).append("]");
 			return builder.toString();
+		}
+	}
+	
+	private static class ClusterTuple {
+		int sizeInPixels;
+		double trueSize;
+		int trueSizeRounded;
+		int frequency;
+		public ClusterTuple(int sizeInPixels, double trueSize, int trueSizeRounded, int frequency) {
+			super();
+			this.sizeInPixels = sizeInPixels;
+			this.trueSize = trueSize;
+			this.trueSizeRounded = trueSizeRounded;
+			this.frequency = frequency;
 		}
 	}
 }
