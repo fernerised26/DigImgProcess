@@ -36,7 +36,6 @@ public class ImgCropper {
 //			String parent = inputDir.getParent();
 			throw new IOException("Not a directory");
 		}
-
 	}
 
 	private static void cropImage(File inputFile, String outputDir) throws IOException {
@@ -58,7 +57,7 @@ public class ImgCropper {
 		
 		moveScaleBar(image, twoDList);
 
-		BufferedImage moddedImage = DrawMyThing.createGrayscaleImage(twoDList);
+		BufferedImage moddedImage = DrawMyThing.createImage(twoDList);
 		File outputDirObj = new File(outputDir);
 		if(!outputDirObj.exists()) {
 			outputDirObj.mkdir();
