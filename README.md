@@ -1,5 +1,5 @@
 # DigImgProcess
-This Java project was used to process digital microscopy images that had been manually annotated. 
+This Java project was used to process digital microscopy images that had been manually annotated. The research paper this functionality was developed for can be found here: <https://pubs.acs.org/doi/10.1021/acsabm.2c00827>
 
 The annotated images assumed specific preparation methodology for compatibility:
 - Raw microscopy images are in grayscale
@@ -22,7 +22,7 @@ Code in this project is not built to function as a conventional monolithic appli
 Contains an implementation of a recursive 4-way floodfill. Given an image and the coordinates of an arbitrary pixel in that image, all grayscale pixels contiguous with the seed pixel are marked with the color of the deepest nested annotation they are within.
 
 ### src/main/java/BoundaryAnalyzer.java
-Contains an implementation of the ray-casting algorithm to determine whether a given pixel is inside a polygon/annotation, as well as identifying the color of the polygon it is nested deepest within. Due to the inherent limitation of detecting vertices when using this approach in the context of rasterized images (as opposed to vectorized), annoations are required to be 1 pixel wide, as thin as possible.
+Contains an implementation of the ray-casting algorithm to determine whether a given pixel is inside a polygon/annotation, as well as identifying the color of the polygon it is nested deepest within. Due to the inherent limitation of detecting vertices when using this approach in the context of rasterized images (as opposed to vectorized), annotations are required to be 1 pixel wide, as thin as possible.
 
 ### src/main/DotAnalyzer.java
 Invokes the methods in the above 2 classes (and others) to execute almost all other essential functions. Contains additional logic to:
